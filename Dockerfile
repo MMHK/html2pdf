@@ -1,5 +1,7 @@
 FROM debian:jessie
 
+ENV WORKER=4 HOST=0.0.0.0:4444 ROOT=/usr/local/html2pdf/web_root TIMEOUT=60
+
 WORKDIR /root/src/github.com/mmhk/html2pdf/
 COPY . .
 
@@ -22,6 +24,10 @@ RUN set -x  \
  && export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin \
  && go get -v \
  && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o html2pdf . \
+ && mkdir /usr/local/html2pdf \
+ && mv web_root /usr/local/html2pdf/web_root \
+ && mv render /usr/local/html2pdf/render \
+ && envsubst < /usr/bin/html2pdf/config.json > /usr/bin/html2pdf/config.json \
  && mv html2pdf /usr/bin/html2pdf \
 # Install official PhantomJS release
  && mkdir /tmp/phantomjs \
@@ -41,5 +47,11 @@ RUN set -x  \
  && rm -Rf /root/src \
  && rm -Rf /root/bin \
  && rm -Rf /root/pkg 
+ 
+
+
+EXPOSE 4444
 
 ENTRYPOINT ["dumb-init"]
+
+CMD /usr/bin/html2pdf -c /usr/local/html2pdf/config.json
