@@ -228,7 +228,7 @@ func CombinePDF(files []string, dest_pdf_path string) error {
 	config := types.NewDefaultConfiguration()
 	config.SetValidationRelaxed()
 	cmd := pdfcpu.MergeCommand(files, dest_pdf_path, config)
-	err := pdfcpu.Process(&cmd)
+	_, err := pdfcpu.Process(cmd)
 	if err != nil {
 		ErrLogger.Println(err)
 		return err

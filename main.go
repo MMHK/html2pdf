@@ -2,7 +2,7 @@
 package main
 
 import (
-	"HTML2PDF/lib"
+	"github.com/mmhk/html2pdf/lib"
 	"flag"
 	"fmt"
 	"runtime"
