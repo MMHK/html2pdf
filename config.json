@@ -1,0 +1,10 @@
+{
+    "listen": "127.0.0.1:4444",
+    "tmp_path": "./temp",
+    "web_root": "./web_root",
+    "webkit_bin": "./render/phantomjs/phantomjs.exe",
+	"pdftk_bin": "./bin/pdftk.exe",
+	"worker": 4,
+	"timeout": 40,
+    "webkit_args": [ "./render/phantomjs/pdf.js" ]
+}
