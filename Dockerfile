@@ -44,7 +44,7 @@ RUN set -x  \
  && apt-get update \
  && apt-get install -y google-chrome-stable \
    --no-install-recommends \
- && yarn add puppeteer
+ && yarn add puppeteer \
  && groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
  && mkdir -p /home/pptruser/Downloads \
  && chown -R pptruser:pptruser /home/pptruser \
