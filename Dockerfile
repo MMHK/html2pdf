@@ -40,10 +40,11 @@ RUN set -x  \
 # Install puppeteer
  && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
  && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
- && wget -q -O - https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add - \
+ && wget -q -O - https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
  && sh -c 'echo "deb https://dl.yarnpkg.com/debian/ stable main" >> /etc/apt/sources.list.d/yarn.list' \
+ && curl -sL https://deb.nodesource.com/setup_9.x | -E bash - \
  && apt-get update \
- && apt-get install -y google-chrome-stable yarn \
+ && apt-get install -y google-chrome-stable yarn nodejs \
    --no-install-recommends \
  && yarn add puppeteer \
  && groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
