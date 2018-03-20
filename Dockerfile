@@ -28,7 +28,7 @@ RUN set -x  \
  && mkdir /usr/local/html2pdf \
  && mv web_root /usr/local/html2pdf/web_root \
  && mv render /usr/local/html2pdf/render \
- && envsubst < /usr/local/html2pdf/config.json > /usr/local/html2pdf/config.json \
+ && mv config.json /usr/local/html2pdf/config.json \
  && mv html2pdf /usr/bin/html2pdf \
 # Install official PhantomJS release
  && mkdir /tmp/phantomjs \
@@ -42,7 +42,7 @@ RUN set -x  \
  && dpkg -i /tmp/dumb-init.deb \
 # Clean up
  && apt-get purge --auto-remove -y \
-        curl git gettext-base\
+        curl git \
  && apt-get clean \
  && rm -rf /tmp/* /var/lib/apt/lists/* \
  && rm -Rf /root/src \
@@ -56,4 +56,5 @@ EXPOSE 4444
 
 ENTRYPOINT ["dumb-init"]
 
-CMD /usr/bin/html2pdf -c /usr/local/html2pdf/config.json
+CMD  envsubst < /usr/local/html2pdf/config.json > /usr/local/html2pdf/config.json \
+ && /usr/bin/html2pdf -c /usr/local/html2pdf/config.json
