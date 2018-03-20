@@ -7,7 +7,7 @@ COPY . .
 
 
 RUN set -x  \
- # Install runtime dependencies
+# Install runtime dependencies
  && apt-get update \
  && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -16,11 +16,17 @@ RUN set -x  \
         curl \
         git \
         pdftk \
+        fonts-droid \
+        ttf-wqy-zenhei \
+        ttf-wqy-microhei \
+        fonts-arphic-ukai \
+        fonts-arphic-uming \
         gettext-base \
- # install go runtime
+# install go runtime
  && curl -O https://dl.google.com/go/go1.8.7.linux-amd64.tar.gz \
  && tar xvf go1.8.7.linux-amd64.tar.gz \
  && mv ./go /usr/local/go \
+# build html2pdf
  && export GOPATH=/root \
  && export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin \
  && go get -v \
