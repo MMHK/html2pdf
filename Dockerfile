@@ -44,12 +44,11 @@ RUN set -x  \
  && apt-get update \
  && apt-get install -y google-chrome-stable \
    --no-install-recommends \
- && mkdir /tmp/phantomjs \
  && yarn add puppeteer
  && groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
  && mkdir -p /home/pptruser/Downloads \
  && chown -R pptruser:pptruser /home/pptruser \
- && chown -R pptruser:pptruser /node_modules
+ && chown -R pptruser:pptruser /node_modules \
 # Install dumb-init (to handle PID 1 correctly).
 # https://github.com/Yelp/dumb-init
  && curl -Lo /tmp/dumb-init.deb https://github.com/Yelp/dumb-init/releases/download/v1.1.3/dumb-init_1.1.3_amd64.deb \
