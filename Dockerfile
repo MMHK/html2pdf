@@ -49,10 +49,6 @@ RUN set -x  \
  && apt-get install -y google-chrome-stable yarn nodejs \
    --no-install-recommends \
  && yarn add puppeteer \
- && groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
- && mkdir -p /home/pptruser/Downloads \
- && chown -R pptruser:pptruser /home/pptruser \
- && chown -R pptruser:pptruser /node_modules \
 # Install dumb-init (to handle PID 1 correctly).
 # https://github.com/Yelp/dumb-init
  && curl -Lo /tmp/dumb-init.deb https://github.com/Yelp/dumb-init/releases/download/v1.1.3/dumb-init_1.1.3_amd64.deb \
@@ -70,8 +66,6 @@ RUN set -x  \
 
 
 EXPOSE 4444
-
-USER pptruser
 
 ENTRYPOINT ["dumb-init"]
 
