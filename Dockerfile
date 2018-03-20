@@ -62,5 +62,5 @@ EXPOSE 4444
 
 ENTRYPOINT ["dumb-init"]
 
-CMD  envsubst < /usr/local/html2pdf/config.json > /usr/local/html2pdf/config.json \
- && /usr/bin/html2pdf -c /usr/local/html2pdf/config.json
+CMD  envsubst < /usr/local/html2pdf/config.json > /usr/local/html2pdf/temp.json \
+ && /usr/bin/html2pdf -c /usr/local/html2pdf/temp.json
