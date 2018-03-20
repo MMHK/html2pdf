@@ -22,6 +22,8 @@ RUN set -x  \
         ttf-wqy-microhei \
         fonts-arphic-ukai \
         fonts-arphic-uming \
+        apt-transport-https \
+        lsb-release \
         gettext-base \
 # install go runtime
  && curl -O https://dl.google.com/go/go1.8.7.linux-amd64.tar.gz \
