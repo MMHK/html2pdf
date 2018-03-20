@@ -48,6 +48,7 @@ RUN set -x  \
  && apt-get update \
  && apt-get install -y google-chrome-stable yarn nodejs \
    --no-install-recommends \
+ && cd /usr/local/html2pdf/render \
  && yarn add puppeteer \
 # Install dumb-init (to handle PID 1 correctly).
 # https://github.com/Yelp/dumb-init
@@ -55,7 +56,7 @@ RUN set -x  \
  && dpkg -i /tmp/dumb-init.deb \
 # Clean up
  && apt-get purge --auto-remove -y \
-        curl git wget \
+        curl git \
  && apt-get clean \
  && rm -rf /tmp/* /var/lib/apt/lists/* \
  && rm -Rf /root/src \

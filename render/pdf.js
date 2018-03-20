@@ -1,11 +1,12 @@
 const puppeteer = require('puppeteer');
 
 let output,
+    system = require("process"),
     url;
     
-if (system.args.length > 2) {
-    url = system.args[1];
-    output = system.args[2];
+if (system.argv.length > 3) {
+    url = system.argv[2];
+    output = system.argv[3];
 }
 
 (async() => {
