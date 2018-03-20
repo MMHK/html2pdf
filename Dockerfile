@@ -16,6 +16,8 @@ RUN set -x  \
         curl \
         git \
         pdftk \
+        wget \
+        yarn \
         fonts-droid \
         ttf-wqy-zenhei \
         ttf-wqy-microhei \
@@ -36,29 +38,37 @@ RUN set -x  \
  && mv render /usr/local/html2pdf/render \
  && mv config.json /usr/local/html2pdf/config.json \
  && mv html2pdf /usr/bin/html2pdf \
-# Install official PhantomJS release
+# Install puppeteer
+ && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+ && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+ && apt-get update \
+ && apt-get install -y google-chrome-stable \
+   --no-install-recommends \
  && mkdir /tmp/phantomjs \
- && curl -L https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 \
-        | tar -xj --strip-components=1 -C /tmp/phantomjs \
- && mv /tmp/phantomjs/bin/phantomjs /usr/local/bin/phantomjs \
- && ln -s /usr/local/bin/phantomjs /usr/bin/phantomjs \
+ && yarn add puppeteer
+ && groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
+ && mkdir -p /home/pptruser/Downloads \
+ && chown -R pptruser:pptruser /home/pptruser \
+ && chown -R pptruser:pptruser /node_modules
 # Install dumb-init (to handle PID 1 correctly).
 # https://github.com/Yelp/dumb-init
  && curl -Lo /tmp/dumb-init.deb https://github.com/Yelp/dumb-init/releases/download/v1.1.3/dumb-init_1.1.3_amd64.deb \
  && dpkg -i /tmp/dumb-init.deb \
 # Clean up
  && apt-get purge --auto-remove -y \
-        curl git \
+        curl git wget \
  && apt-get clean \
  && rm -rf /tmp/* /var/lib/apt/lists/* \
  && rm -Rf /root/src \
  && rm -Rf /root/bin \
  && rm -Rf /root/pkg \
+ && rm -rf /src/*.deb \
  && rm -Rf /usr/local/go 
- 
 
 
 EXPOSE 4444
+
+USER pptruser
 
 ENTRYPOINT ["dumb-init"]
 
