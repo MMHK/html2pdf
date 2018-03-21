@@ -68,11 +68,12 @@
 <script src="js/swagger-ui-bundle.js"> </script>
 <script src="js/swagger-ui-standalone-preset.js"> </script>
 <script>
-window.onload = function() {
-  
+var init = function(conf) {
+  conf.host = location.host;
+  conf.basePath = location.pathname.replace(/sample\/$/i, '')
   // Build a system
   const ui = SwaggerUIBundle({
-    url: "js/HTML2PDF_V1_swagger.json",
+    spec: conf,
     dom_id: '#swagger-ui',
     deepLinking: true,
     presets: [
@@ -87,6 +88,13 @@ window.onload = function() {
 
   window.ui = ui
 }
+fetch("js/HTML2PDF_V1_swagger.json")
+    .then(function(reps){
+        return reps.json();
+    })
+    .then(function(conf){
+        init(conf);
+    })
 </script>
 </body>
 
