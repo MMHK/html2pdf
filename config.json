@@ -2,7 +2,7 @@
     "listen": "${HOST}",
     "tmp_path": "/tmp",
     "web_root": "${ROOT}",
-    "webkit_bin": "/usr/bin/phantomjs",
+    "webkit_bin": "/usr/bin/node",
     "pdftk_bin": "/usr/bin/pdftk",
     "worker": ${WORKER},
     "timeout": ${TIMEOUT},
