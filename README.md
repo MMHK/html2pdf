@@ -13,19 +13,20 @@
  - `htmlpdf`，将HTML源码渲染成`PDF`文件格式。 
  - `linkpdf`，将online的link渲染成为`PDF`文件格式。 
  - `combine`，将若干个pdf url，合并成一个的pdf文件。
+ - `link/combine`，将若干个pdf/网页 url，合并成一个的pdf文件。
 
 ## 编译
 
-- 安装Golang环境, Go >= 1.7
+- 安装Golang环境, Go >= 1.8
 - checkout 源码
 - 在源码目录 执行 ` go get -v `签出所有的依赖库
-- ` go build ` 编译成二进制可执行文件
-- 执行文件 ` HTML2PDF -c ./config.json`
+- ` go build -o html2pdf .` 编译成二进制可执行文件
+- 执行文件 ` html2pdf -c ./config.json`
 
 ## 依赖
 
-- [Phantomjs](http://phantomjs.org/) 由于 wkhtmltopdf 渲染有问题，所以作为备选渲染器引入，
-  还有个本地渲染路径问题需要解决。
+- [Phantomjs](http://phantomjs.org/) ，基于 `qtwebkit`的渲染引擎。
+- 在 `puppeteer` 分支，还有依赖于 [puppeteer](https://github.com/GoogleChrome/puppeteer) , 使用`chrome-headless` 渲染页面。
 
 ## 配置
 
@@ -57,3 +58,23 @@
 渲染web page的页面尺寸是不一样的，这个需要控制 `--zoom` 参数进行预匹配。
 
 个种纸张的打印尺寸规格可以参考[这里](http://www.papersizes.org/a-sizes-in-pixels.htm)
+
+## Docker
+
+此项目已经打包成docker 镜像
+
+- 签出docker 镜像
+```
+docker pull mmhk/html2pdf
+```
+- 环境变量，具体请参考 `config.json` 的说明。
+  - WORKER ，同时渲染的进程数, 默认为 4
+  - HOST，service绑定的服务地址及端口，默认为 `127.0.0.1:4444`
+  - ROOT, swagger-ui 存放的本地目录，可以设置空来屏蔽 swagger-ui 的显示， 默认为 `/usr/local/html2pdf/web_root`
+  - TIMEOUT， 每个渲染进程的超时时间(秒)， 默认为 60
+  
+- 运行
+```
+docker run --name html2pdf -p 4444:4444 mmhk/html2pdf:latest
+```
+
