@@ -88,15 +88,15 @@ func (s *HTTPService) HTMLPDF(writer http.ResponseWriter, request *http.Request)
 		http.Error(writer, err.Error(), 500)
 		return
 	}
+	defer pdf.Close()
+	defer time.AfterFunc(time.Second*10, func() {
+		os.Remove(file)
+	})
 	_, err = io.Copy(writer, pdf)
 	if err != nil {
 		http.Error(writer, err.Error(), 500)
 		return
 	}
-	defer pdf.Close()
-	defer time.AfterFunc(time.Second*10, func() {
-		os.Remove(file)
-	})
 }
 
 func (s *HTTPService) LINKPDF(writer http.ResponseWriter, request *http.Request) {
@@ -117,16 +117,15 @@ func (s *HTTPService) LINKPDF(writer http.ResponseWriter, request *http.Request)
 		http.Error(writer, err.Error(), 500)
 		return
 	}
+	defer pdf.Close()
+	defer time.AfterFunc(time.Second*10, func() {
+		os.Remove(file)
+	})
 	_, err = io.Copy(writer, pdf)
 	if err != nil {
 		http.Error(writer, err.Error(), 500)
 		return
 	}
-	defer pdf.Close()
-	defer time.AfterFunc(time.Second*10, func() {
-		os.Remove(file)
-	})
-
 }
 
 func (s *HTTPService) LinkCombine(writer http.ResponseWriter, request *http.Request) {
