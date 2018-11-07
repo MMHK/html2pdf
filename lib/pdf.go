@@ -17,8 +17,8 @@ import (
 	_ "image/png"
 	"os"
 
-	"github.com/hhrutter/pdfcpu"
-	"github.com/hhrutter/pdfcpu/types"
+	"github.com/hhrutter/pdfcpu/pkg/api"
+	"github.com/hhrutter/pdfcpu/pkg/pdfcpu"
 	"github.com/jung-kurt/gofpdf"
 )
 
@@ -251,10 +251,10 @@ func CombinePDF(files []string, dest_pdf_path string) error {
 		}
 	}()
 
-	config := types.NewDefaultConfiguration()
-	config.SetValidationRelaxed()
-	cmd := pdfcpu.MergeCommand(files, dest_pdf_path, config)
-	_, err := pdfcpu.Process(cmd)
+	config := pdfcpu.NewDefaultConfiguration()
+	// config.SetValidationRelaxed()
+	cmd := api.MergeCommand(files, dest_pdf_path, config)
+	_, err := api.Process(cmd)
 	if err != nil {
 		ErrLogger.Println(err)
 		return err
