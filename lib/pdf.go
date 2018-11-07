@@ -81,7 +81,7 @@ func (d *Downloader) DownloadRemoteFile(remoteURL string, index int) {
 		}
 	}
 	//检查是否存在本地文件，即remoteURL 为本地文件路劲
-	if info, err := os.Stat(remoteURL); err == nil {
+	if _, err := os.Stat(remoteURL); err == nil {
 		InfoLogger.Println("local file hint, path:" + remoteURL)
 		d.downloadJob <- JobItem{
 			Name:      filepath.Base(remoteURL),
