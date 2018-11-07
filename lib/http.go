@@ -140,8 +140,6 @@ func (s *HTTPService) LinkCombine(writer http.ResponseWriter, request *http.Requ
 			input_files := make([]string, len(values))
 			task := NewTask(len(values))
 
-			InfoLogger.Println("request params:", values)
-
 			for _, value := range values {
 				file_url := value
 
@@ -166,16 +164,17 @@ func (s *HTTPService) LinkCombine(writer http.ResponseWriter, request *http.Requ
 				InfoLogger.Println("task list:", list)
 
 				for _, item := range list {
-					input_files[item.Index] = item.File
 
 					if item.Err != nil {
 						http.Error(writer, item.Err.Error(), 500)
-						return
+						input_files[item.Index] = ""
+					} else {
+						input_files[item.Index] = item.File
 					}
 				}
 			})
 
-			d := NewDownloader(input_files, s.config.TempPath)
+			d := NewDownloader(input_files, s.config.TempPath, s.config)
 
 			d.Start()
 			d.Done(func(list []string) {
@@ -203,7 +202,6 @@ func (s *HTTPService) LinkCombine(writer http.ResponseWriter, request *http.Requ
 				defer download.Close()
 
 				defer time.AfterFunc(time.Second*10, func() {
-
 					for _, item := range list {
 						if !strings.Contains(item, "/cache/") {
 							os.Remove(item)
@@ -227,7 +225,7 @@ func (s *HTTPService) COMBINE(writer http.ResponseWriter, request *http.Request)
 
 	for key, values := range request.PostForm {
 		if strings.EqualFold(key, "file") {
-			d := NewDownloader(values, s.config.TempPath)
+			d := NewDownloader(values, s.config.TempPath, s.config)
 
 			InfoLogger.Println(values)
 
@@ -253,7 +251,6 @@ func (s *HTTPService) COMBINE(writer http.ResponseWriter, request *http.Request)
 				defer download.Close()
 
 				defer time.AfterFunc(time.Second*10, func() {
-
 					for _, item := range list {
 						if !strings.Contains(item, "/cache/") {
 							os.Remove(item)

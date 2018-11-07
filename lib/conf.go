@@ -14,6 +14,7 @@ type Config struct {
 	PDFTK      string   `json:"pdftk_bin"`
 	Worker     int      `json:"worker"`
 	Timeout    int      `json:timeout`
+	CacheTTL   int      `json:cache_ttl`
 	save_path  string
 }
 

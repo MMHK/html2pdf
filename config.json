@@ -4,6 +4,7 @@
     "web_root": "${ROOT}",
     "webkit_bin": "/usr/bin/phantomjs",
     "pdftk_bin": "/usr/bin/pdftk",
+	"cache_ttl": ${TLL},
     "worker": ${WORKER},
     "timeout": ${TIMEOUT},
     "webkit_args": [ "/usr/local/html2pdf/render/pdf.js" ]

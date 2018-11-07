@@ -40,6 +40,7 @@
     "webkit_bin": "", //Phantomjs 执行文件的存放路径
     "webkit_args": [ "./render/phantomjs/pdf.js" ], //Phantomjs cli 默认的参数，执行js渲染的具体脚本
     "pdftk_bin": "pdftk.exe", //pdftk 渲染器位置
+	"cache_ttl": 3600, //静态pdf缓存时间（秒）
     "worker": 4, //生成pdf的工作进程数
     "timeout": 40 //生成PDF的进程的超时时间
 }
@@ -72,6 +73,7 @@ docker pull mmhk/html2pdf
   - HOST，service绑定的服务地址及端口，默认为 `127.0.0.1:4444`
   - ROOT, swagger-ui 存放的本地目录，可以设置空来屏蔽 swagger-ui 的显示， 默认为 `/usr/local/html2pdf/web_root`
   - TIMEOUT， 每个渲染进程的超时时间(秒)， 默认为 60
+  - TTL, 静态pdf缓存时间（秒）, 默认为 3600 (1小时)
   
 - 运行
 ```

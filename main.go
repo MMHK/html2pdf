@@ -2,10 +2,11 @@
 package main
 
 import (
-	"github.com/mmhk/html2pdf/lib"
 	"flag"
 	"fmt"
 	"runtime"
+
+	"github.com/mmhk/html2pdf/lib"
 )
 
 func main() {

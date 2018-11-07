@@ -82,7 +82,7 @@ func (t *Task) TaskDone(callback func([]*TaskResult)) {
 
 func (pdf *HTMLPDF) run(source_path string, pdf_path string) error {
 	pdf.buildJob <- true
-	InfoLogger.Println(len(pdf.buildJob))
+	InfoLogger.Printf("current html2pdf job count:%d\n", len(pdf.buildJob))
 
 	source_path = filepath.ToSlash(source_path)
 	bin_args := append(pdf.config.WebKitArgs, source_path, pdf_path)

@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	_ "image/gif"
 	_ "image/jpeg"
@@ -32,14 +34,16 @@ type Downloader struct {
 	list        []string
 	tempPath    string
 	cachePath   string
+	config      *Config
 	downloadJob chan JobItem
 }
 
-func NewDownloader(UrlList []string, tempPath string) *Downloader {
+func NewDownloader(UrlList []string, tempPath string, conf *Config) *Downloader {
 	return &Downloader{
 		fileCount:   len(UrlList),
 		list:        UrlList,
 		tempPath:    tempPath,
+		config:      conf,
 		cachePath:   filepath.Join(tempPath, "cache"),
 		downloadJob: make(chan JobItem, 4),
 	}
@@ -63,17 +67,22 @@ func (d *Downloader) DownloadRemoteFile(remoteURL string, index int) {
 	cachePath := filepath.Join(d.cachePath, filename)
 
 	//检查是否存在本地缓存
-	if _, err := os.Stat(cachePath); err == nil {
-		d.downloadJob <- JobItem{
-			Name:      filename,
-			LocalPath: cachePath,
-			URL:       remoteURL,
-			Index:     index,
+	if info, err := os.Stat(cachePath); err == nil {
+		//检查cache file 是否已经失效
+		if info.ModTime().Add(time.Duration(d.config.CacheTTL) * time.Second).After(time.Now()) {
+			InfoLogger.Println("cache file hint, path:" + cachePath)
+			d.downloadJob <- JobItem{
+				Name:      filename,
+				LocalPath: cachePath,
+				URL:       remoteURL,
+				Index:     index,
+			}
+			return
 		}
-		return
 	}
 	//检查是否存在本地文件，即remoteURL 为本地文件路劲
-	if _, err := os.Stat(remoteURL); err == nil {
+	if info, err := os.Stat(remoteURL); err == nil {
+		InfoLogger.Println("local file hint, path:" + remoteURL)
 		d.downloadJob <- JobItem{
 			Name:      filepath.Base(remoteURL),
 			LocalPath: remoteURL,
@@ -127,7 +136,7 @@ func (d *Downloader) Done(callback func([]string)) {
 		item := <-d.downloadJob
 		local_list[item.Index] = item.LocalPath
 		InfoLogger.Println("a download job Done.")
-		go d.CacheFile(item)
+		d.CacheFile(item)
 		d.fileCount--
 		if d.fileCount <= 0 {
 			break
@@ -141,13 +150,30 @@ func (d *Downloader) Done(callback func([]string)) {
 
 func (d *Downloader) CacheFile(item JobItem) {
 	destPath := filepath.Join(d.cachePath, item.Name)
+	lockPath := destPath + ".lock"
+
+	if _, err := os.Stat(lockPath); err == nil {
+		time.AfterFunc(time.Second*60, func() {
+			d.CacheFile(item)
+		})
+		return
+	} else {
+		ioutil.WriteFile(lockPath, []byte{}, 0777)
+	}
 
 	if !strings.EqualFold(item.LocalPath, destPath) && !strings.EqualFold(item.LocalPath, item.URL) {
-		err := d.Copy(item.LocalPath, destPath)
+		tempPath := destPath + ".tmp"
+		err := d.Copy(item.LocalPath, tempPath)
+		if err != nil {
+			ErrLogger.Println(err)
+		}
+		err = os.Rename(tempPath, destPath)
 		if err != nil {
 			ErrLogger.Println(err)
 		}
 	}
+
+	os.Remove(lockPath)
 }
 
 func (d *Downloader) Copy(src string, dst string) error {

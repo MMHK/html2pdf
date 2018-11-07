@@ -1,6 +1,6 @@
 FROM debian:jessie
 
-ENV WORKER=4 HOST=0.0.0.0:4444 ROOT=/usr/local/html2pdf/web_root TIMEOUT=60
+ENV WORKER=4 HOST=0.0.0.0:4444 ROOT=/usr/local/html2pdf/web_root TIMEOUT=60 TLL=3600
 
 WORKDIR /root/src/github.com/mmhk/html2pdf/
 COPY . .
