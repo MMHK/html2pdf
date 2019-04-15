@@ -1,6 +1,6 @@
 FROM debian:jessie
 
-ENV WORKER=4 HOST=0.0.0.0:4444 ROOT=/usr/local/html2pdf/web_root TIMEOUT=60 TLL=3600
+ENV WORKER=4 HOST=0.0.0.0:4444 ROOT=/app/web_root TIMEOUT=60 TLL=3600
 
 WORKDIR /app
 COPY . /app
@@ -47,7 +47,7 @@ RUN set -x  \
  && apt-get purge --auto-remove -y \
         curl git \
  && apt-get clean \
- && rm -rf /tmp/* /var/lib/apt/lists/* \
+ && rm -rf /tmp/* /var/lib/apt/lists/* /app/*.gz /app/vendor \
  && rm -Rf /usr/local/go 
  
 

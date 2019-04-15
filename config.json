@@ -7,5 +7,5 @@
 	"cache_ttl": ${TLL},
     "worker": ${WORKER},
     "timeout": ${TIMEOUT},
-    "webkit_args": [ "/usr/local/html2pdf/render/pdf.js" ]
+    "webkit_args": [ "/app/render/pdf.js" ]
 }
