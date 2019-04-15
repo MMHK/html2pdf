@@ -14,3 +14,4 @@
 .glide/
 /vendor/github.com
 /bin
+/vendor

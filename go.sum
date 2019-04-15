@@ -1,0 +1,10 @@
+github.com/gorilla/mux v1.7.1 h1:Dw4jY2nghMMRsh1ol8dv1axHkDwMQK2DHerMNJsIpJU=
+github.com/gorilla/mux v1.7.1/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
+github.com/hhrutter/pdfcpu v0.1.23 h1:2o2/3fzcgfewTkVBtzoL1kDbQEYtl8iF79OL18ZpbBg=
+github.com/hhrutter/pdfcpu v0.1.23/go.mod h1:vRp7lzKvxF4+7VgBPjNxSuArQafA247dnd1LepVM+DE=
+github.com/jung-kurt/gofpdf v1.1.0 h1:obJGjJDHb7e5bXuJ+vg9gwWYanEYRmJgS2RImIKb0Sc=
+github.com/jung-kurt/gofpdf v1.1.0/go.mod h1:7Id9E/uU8ce6rXgefFLlgrJj/GYY22cpxn+r32jIOes=
+github.com/mmhk/html2pdf v0.0.0-20190415034620-a4fb2f68c4f3 h1:Jy974qfCwKcgbxDg4vmfut4La3Ypd5yjU5Ki1geaja8=
+github.com/mmhk/html2pdf v0.0.0-20190415034620-a4fb2f68c4f3/go.mod h1:SMQHJFCqaIr8b6c+t4R6cPECE/Pf1hyJcYHtGwB5V9k=
+github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
+github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
