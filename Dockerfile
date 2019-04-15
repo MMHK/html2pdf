@@ -2,12 +2,12 @@ FROM debian:jessie
 
 ENV WORKER=4 HOST=0.0.0.0:4444 ROOT=/usr/local/html2pdf/web_root TIMEOUT=60 TLL=3600
 
-WORKDIR /root/src/github.com/mmhk/html2pdf/
-COPY . .
-
+WORKDIR /app
+COPY . /app
 
 RUN set -x  \
 # Install runtime dependencies
+  && printf "deb http://archive.debian.org/debian/ jessie main\ndeb-src http://archive.debian.org/debian/ jessie main\ndeb http://security.debian.org jessie/updates main\ndeb-src http://security.debian.org jessie/updates main" > /etc/apt/sources.list \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -23,19 +23,16 @@ RUN set -x  \
         fonts-arphic-uming \
         gettext-base \
 # install go runtime
- && curl -O https://dl.google.com/go/go1.8.7.linux-amd64.tar.gz \
- && tar xvf go1.8.7.linux-amd64.tar.gz \
+ && curl -O https://dl.google.com/go/go1.12.4.linux-amd64.tar.gz \
+ && tar xvf go1.12.4.linux-amd64.tar.gz \
  && mv ./go /usr/local/go \
 # build html2pdf
- && export GOPATH=/root \
- && export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin \
+ && export PATH=$PATH:/usr/local/go/bin \
+ && export GO111MODULE=on  \
  && go get -v \
+ && cd /app \
+ && go mod vendor \
  && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o html2pdf . \
- && mkdir /usr/local/html2pdf \
- && mv web_root /usr/local/html2pdf/web_root \
- && mv render /usr/local/html2pdf/render \
- && mv config.json /usr/local/html2pdf/config.json \
- && mv html2pdf /usr/bin/html2pdf \
 # Install official PhantomJS release
  && mkdir /tmp/phantomjs \
  && curl -L https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 \
@@ -51,16 +48,12 @@ RUN set -x  \
         curl git \
  && apt-get clean \
  && rm -rf /tmp/* /var/lib/apt/lists/* \
- && rm -Rf /root/src \
- && rm -Rf /root/bin \
- && rm -Rf /root/pkg \
  && rm -Rf /usr/local/go 
  
-
 
 EXPOSE 4444
 
 ENTRYPOINT ["dumb-init"]
 
-CMD  envsubst < /usr/local/html2pdf/config.json > /usr/local/html2pdf/temp.json \
- && /usr/bin/html2pdf -c /usr/local/html2pdf/temp.json
+CMD  envsubst < /app/config.json > /app/temp.json \
+ && /app/html2pdf -c /app/temp.json
