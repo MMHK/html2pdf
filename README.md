@@ -60,6 +60,8 @@
 
 个种纸张的打印尺寸规格可以参考[这里](http://www.papersizes.org/a-sizes-in-pixels.htm)
 
+请参考用于生成支持`HTML2PDF`的html模版项目[html2pdf-template](https://github.com/MMHK/html2pdf-template)
+
 ## Docker
 
 此项目已经打包成docker 镜像
