@@ -39,6 +39,9 @@ RUN set -x  \
         | tar -xj --strip-components=1 -C /tmp/phantomjs \
  && mv /tmp/phantomjs/bin/phantomjs /usr/local/bin/phantomjs \
  && ln -s /usr/local/bin/phantomjs /usr/bin/phantomjs \
+# config font 
+ && cp -r /app/font-conf/10-* /etc/fonts/conf.d/ \
+ && fc-cache -fv
 # Install dumb-init (to handle PID 1 correctly).
 # https://github.com/Yelp/dumb-init
  && curl -Lo /tmp/dumb-init.deb https://github.com/Yelp/dumb-init/releases/download/v1.1.3/dumb-init_1.1.3_amd64.deb \
