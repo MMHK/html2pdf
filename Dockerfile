@@ -15,7 +15,6 @@ RUN set -x  \
         libfontconfig \
         curl \
         git \
-        pdftk \
         fonts-droid \
         ttf-wqy-zenhei \
         ttf-wqy-microhei \

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/mmhk/html2pdf/lib"
+	"html2pdf/lib"
 )
 
 func main() {

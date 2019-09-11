@@ -11,10 +11,9 @@ type Config struct {
 	WebRoot    string   `json:"web_root"`
 	WebKitBin  string   `json:"webkit_bin"`
 	WebKitArgs []string `json:"webkit_args"`
-	PDFTK      string   `json:"pdftk_bin"`
 	Worker     int      `json:"worker"`
-	Timeout    int      `json:timeout`
-	CacheTTL   int      `json:cache_ttl`
+	Timeout    int      `json:"timeout"`
+	CacheTTL   int      `json:"cache_ttl"`
 	save_path  string
 }
 

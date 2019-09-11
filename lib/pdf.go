@@ -17,9 +17,10 @@ import (
 	_ "image/png"
 	"os"
 
-	"github.com/hhrutter/pdfcpu/pkg/api"
-	"github.com/hhrutter/pdfcpu/pkg/pdfcpu"
 	"github.com/jung-kurt/gofpdf"
+
+	"github.com/pdfcpu/pdfcpu/pkg/cli"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 )
 
 type JobItem struct {
@@ -67,7 +68,8 @@ func (d *Downloader) DownloadRemoteFile(remoteURL string, index int) {
 	cachePath := filepath.Join(d.cachePath, filename)
 
 	//检查是否存在本地缓存
-	if info, err := os.Stat(cachePath); err == nil {
+	if info, err := os.Stat(cachePath); err == nil &&
+			info.Size() > 0 {
 		//检查cache file 是否已经失效
 		if info.ModTime().Add(time.Duration(d.config.CacheTTL) * time.Second).After(time.Now()) {
 			InfoLogger.Println("cache file hint, path:" + cachePath)
@@ -252,9 +254,9 @@ func CombinePDF(files []string, dest_pdf_path string) error {
 	}()
 
 	config := pdfcpu.NewDefaultConfiguration()
-	// config.SetValidationRelaxed()
-	cmd := api.MergeCommand(files, dest_pdf_path, config)
-	_, err := api.Process(cmd)
+	config.ValidationMode = pdfcpu.ValidationRelaxed
+	cmd := cli.MergeCommand(files, dest_pdf_path, config)
+	_, err := cli.Process(cmd)
 	if err != nil {
 		ErrLogger.Println(err)
 		return err

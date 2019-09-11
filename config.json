@@ -3,7 +3,6 @@
     "tmp_path": "/tmp",
     "web_root": "${ROOT}",
     "webkit_bin": "/usr/bin/phantomjs",
-    "pdftk_bin": "/usr/bin/pdftk",
 	"cache_ttl": ${TLL},
     "worker": ${WORKER},
     "timeout": ${TIMEOUT},

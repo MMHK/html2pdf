@@ -151,19 +151,10 @@ func (pdf *HTMLPDF) BuildFromSource(html []byte) (local_pdf string, err error) {
 func (pdf *HTMLPDF) PDFTK_Combine(files []string) (dest_pdf_path string, err error) {
 	pdf_name := fmt.Sprintf("%d.pdf", time.Now().UnixNano()+rand.Int63())
 	pdf_name = path.Join(pdf.config.TempPath, pdf_name)
-	bin_args := append(files, "cat", "output", pdf_name)
-	cmd := exec.Command(pdf.config.PDFTK, bin_args...)
 
-	var outbuffer bytes.Buffer
-	var errbuffer bytes.Buffer
-	cmd.Stderr = &outbuffer
-	cmd.Stderr = &errbuffer
-	InfoLogger.Println(cmd)
-	err = cmd.Run()
+	err = CombinePDF(files, pdf_name)
 	if err != nil {
-		ErrLogger.Println(err)
-		ErrLogger.Println(errbuffer.String())
-		return "", err
+		return pdf_name, err
 	}
 	return pdf_name, nil
 }
