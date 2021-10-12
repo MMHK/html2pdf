@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM debian:stretch-slim
 
 ENV WORKER=4 HOST=0.0.0.0:4444 ROOT=/app/web_root TIMEOUT=60 TLL=3600
 
