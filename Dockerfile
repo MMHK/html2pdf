@@ -1,9 +1,32 @@
+FROM golang:1.12-alpine as builder
+
+# Add Maintainer Info
+LABEL maintainer="Sam Zhou <sam@mixmedia.com>"
+
+# Set the Current Working Directory inside the container
+WORKDIR /app
+
+# Copy the source from the current directory to the Working Directory inside the container
+COPY . /app
+
+# Build the Go app
+RUN go version \
+ && export GO111MODULE=on \
+ && export GOPROXY=https://goproxy.io \
+ && go mod vendor \
+ && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o html2pdf
+
+######## Start a new stage from scratch #######
 FROM debian:stretch-slim
 
-ENV WORKER=4 HOST=0.0.0.0:4444 ROOT=/app/web_root TIMEOUT=60 TLL=3600
-
 WORKDIR /app
-COPY . /app
+
+# Copy the Pre-built binary file from the previous stage
+COPY --from=builder /app/html2pdf .
+COPY --from=builder /app/web_root ./web_root
+COPY --from=builder /app/config.json .
+COPY --from=builder /app/render ./render
+COPY --from=builder /app/font-conf ./font-conf
 
 RUN set -x  \
 # Install runtime dependencies
@@ -20,17 +43,6 @@ RUN set -x  \
         fonts-arphic-ukai \
         fonts-arphic-uming \
         gettext-base \
-# install go runtime
- && curl -O https://dl.google.com/go/go1.12.4.linux-amd64.tar.gz \
- && tar xvf go1.12.4.linux-amd64.tar.gz \
- && mv ./go /usr/local/go \
-# build html2pdf
- && export PATH=$PATH:/usr/local/go/bin \
- && export GO111MODULE=on  \
- && go get -v \
- && cd /app \
- && go mod vendor \
- && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o html2pdf . \
 # Install official PhantomJS release
  && mkdir /tmp/phantomjs \
  && curl -L https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 \
@@ -48,13 +60,18 @@ RUN set -x  \
  && apt-get purge --auto-remove -y \
         curl git \
  && apt-get clean \
- && rm -rf /tmp/* /var/lib/apt/lists/* /app/*.gz /app/vendor \
- && rm -Rf /usr/local/go 
- 
+ && rm -rf /tmp/* /var/lib/apt/lists/* /app/*.gz  /app/font-conf
+
+ENV WORKER=4 \
+ HOST=0.0.0.0:4444 \
+ ROOT=/app/web_root \
+ TIMEOUT=60 \
+ TLL=3600 \
+ TZ=Asia/Hong_Kong
 
 EXPOSE 4444
 
-ENTRYPOINT ["dumb-init"]
+ENTRYPOINT ["dumb-init", "--"]
 
 CMD  envsubst < /app/config.json > /app/temp.json \
  && /app/html2pdf -c /app/temp.json
