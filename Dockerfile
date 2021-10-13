@@ -7,7 +7,6 @@ COPY . /app
 
 RUN set -x  \
 # Install runtime dependencies
-  && printf "deb http://archive.debian.org/debian/ jessie main\ndeb-src http://archive.debian.org/debian/ jessie main\ndeb http://security.debian.org jessie/updates main\ndeb-src http://security.debian.org jessie/updates main" > /etc/apt/sources.list \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -15,7 +14,7 @@ RUN set -x  \
         libfontconfig \
         curl \
         git \
-        fonts-droid \
+        fonts-droid-fallback \
         ttf-wqy-zenhei \
         ttf-wqy-microhei \
         fonts-arphic-ukai \
