@@ -1,0 +1,139 @@
+openapi: 3.0.1
+info:
+  title: HTML2PDF
+  description: 
+    将 HTML 渲染成 PDF 文件，此项目用 Golang 开发，提供一个HTTP 接口将本地</p><p>或者远程HTML页面输出成为 `PDF` 文件格式。
+    
+
+    使用 `HTML` 作为模板的原因是因为 `HTML` 的表达能力最好。
+  version: V1
+servers:
+- url: /
+tags: []
+paths:
+  /combine:
+    post:
+      tags: []
+      summary: 合并PDF
+      description: 根据提供的PDF URL合并成一个PDF
+      operationId: "combine"
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - file
+              type: object
+              properties:
+                file:
+                  type: array
+                  description: 多个公网可访问的PDF下载地址
+                  items:
+                    type: string
+            encoding:
+              file:
+                style: form
+                explode: true
+        required: true
+      responses:
+        "500":
+          description: API报错
+        "200":
+          description: PDF文件内容
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+  /link/combine:
+    post:
+      tags: []
+      summary: 合并URL地址为PDF
+      description: 根据提供的PDF URL或者页面URL，合并成一个PDF<br> 网页URL将会转化为PDF
+      operationId: "link-combine"
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - file
+              type: object
+              properties:
+                file:
+                  type: array
+                  description: 多个公网可访问的PDF下载地址 或 网页URL
+                  items:
+                    type: string
+            encoding:
+              file:
+                style: form
+                explode: true
+        required: true
+      responses:
+        "500":
+          description: API报错
+        "200":
+          description: PDF文件内容
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+  /htmlpdf:
+    post:
+      tags: []
+      summary: 将HTML内容转换成PDF
+      description: 将HTML内容转换成PDF
+      operationId: "html2pdf"
+      requestBody:
+        content:
+          multipart/form-data: 
+            schema:
+              required:
+              - upload
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: textarea
+                  description: 需要转换成PDF的页面HTML
+        required: true
+      responses:
+        "500":
+          description: API报错
+        "200":
+          description: PDF文件内容
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+  /linkpdf:
+    post:
+      tags: []
+      summary: 将网址转换成PDF
+      description: 将网址转换成PDF
+      operationId: "link2pdf"
+      requestBody:
+        content:
+          multipart/form-data: 
+            schema:
+              required:
+              - link
+              type: object
+              properties:
+                link:
+                  type: string
+                  description: 需要转换成PDF的页面URL
+        required: true
+      responses:
+        "500":
+          description: API报错
+        "200":
+          description: PDF文件内容
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+components: {}

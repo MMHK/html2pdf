@@ -1,14 +1,11 @@
 package lib
 
 import (
-	"bytes"
-	"errors"
+	"context"
 	"fmt"
+	"github.com/chromedp/cdproto/page"
+	"github.com/chromedp/chromedp"
 	"io/ioutil"
-	"math/rand"
-	"os"
-	"os/exec"
-	"path"
 	"path/filepath"
 	"time"
 )
@@ -26,102 +23,137 @@ type Task struct {
 
 type HTMLPDF struct {
 	config   *Config
-	buildJob chan bool
+	jobQueue chan bool
 }
-
-var HTMLPDF_INSTANCE *HTMLPDF
 
 func NewHTMLPDF(conf *Config) *HTMLPDF {
-	if HTMLPDF_INSTANCE != nil {
-		return HTMLPDF_INSTANCE
-	}
-
-	HTMLPDF_INSTANCE = &HTMLPDF{
+	return &HTMLPDF{
 		config:   conf,
-		buildJob: make(chan bool, conf.Worker),
-	}
-
-	return HTMLPDF_INSTANCE
-}
-
-func NewTask(worker int) *Task {
-	return &Task{
-		taskJob:   make(chan *TaskResult, worker),
-		taskCount: 0,
+		jobQueue: make(chan bool, conf.Worker),
 	}
 }
 
-func (t *Task) AddTask(task func() (string, error)) {
-	go func(index int) {
-		file, err := task()
-		t.taskJob <- &TaskResult{
-			File:  file,
-			Err:   err,
-			Index: index,
-		}
-	}(t.taskCount)
-	t.taskCount++
-}
-
-func (t *Task) TaskDone(callback func([]*TaskResult)) {
-	count := 0
-	list := make([]*TaskResult, t.taskCount)
-	for {
-		result := <-t.taskJob
-		list[count] = result
-		count++
-		if count >= t.taskCount {
-			break
-		}
-	}
-
-	close(t.taskJob)
-
-	callback(list)
-}
-
-func (pdf *HTMLPDF) run(source_path string, pdf_path string) error {
-	pdf.buildJob <- true
-	InfoLogger.Printf("current html2pdf job count:%d\n", len(pdf.buildJob))
-
-	source_path = filepath.ToSlash(source_path)
-	bin_args := append(pdf.config.WebKitArgs, source_path, pdf_path)
-	cmd := exec.Command(pdf.config.WebKitBin, bin_args...)
-	var outbuffer bytes.Buffer
-	var errbuffer bytes.Buffer
-	cmd.Stderr = &outbuffer
-	cmd.Stderr = &errbuffer
-	InfoLogger.Println(cmd)
-
-	done := make(chan error, 1)
-
-	var err error
-	go func() {
-		done <- cmd.Run()
+func (pdf *HTMLPDF) WithParamsRun(url string, params *page.PrintToPDFParams) (string, error) {
+	pdf.jobQueue <- true
+	defer func() {
+		<-pdf.jobQueue
 	}()
 
-	select {
-	case err = <-done:
-		InfoLogger.Println("Done")
-	case <-time.After(time.Second * time.Duration(pdf.config.Timeout)):
-		cmd.Process.Kill()
-		err = errors.New("timeout!")
+	// 將 PrintToPDFParams 轉換為 CSS @page 樣式
+	if params.Scale == 0  {
+		params.Scale = 1
+	}
+	customCSS := fmt.Sprintf(`
+		@page {
+			size: %.2fin %.2fin;
+			margin: %.2fin %.2fin %.2fin %.2fin;
+			zoom: %.2f;
+		}
+	`, params.PaperWidth, params.PaperHeight, params.MarginTop, params.MarginRight, params.MarginBottom, params.MarginLeft, params.Scale)
+	if params.Landscape {
+		customCSS = fmt.Sprintf(`
+			@page {
+				size: %.2fin %.2fin;
+				margin: %.2fin %.2fin %.2fin %.2fin;
+				zoom: %.2f;
+			}
+		`, params.PaperHeight, params.PaperWidth, params.MarginTop, params.MarginRight, params.MarginBottom, params.MarginLeft, params.Scale)
 	}
 
-	<-pdf.buildJob
+
+	// 自定義 Chrome 路徑
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.ExecPath(pdf.config.ChromePath),
+	)
+
+	defaultCtx, cancel := context.WithTimeout(context.Background(), time.Second * time.Duration(pdf.config.Timeout))
+	defer cancel()
+
+	// 創建上下文
+	ctx, cancel := chromedp.NewExecAllocator(defaultCtx, opts...)
+	defer cancel()
+
+	ctx, cancel = chromedp.NewContext(ctx)
+	defer cancel()
+
+	// 创建一个事件监听器来监听页面加载完成事件
+	loadEventFired := make(chan struct{})
+	chromedp.ListenTarget(ctx, func(ev interface{}) {
+		switch ev.(type) {
+		case *page.EventLoadEventFired:
+			close(loadEventFired)
+		}
+	})
+
+	var buf []byte
+	err := chromedp.Run(ctx, chromedp.Tasks{
+		chromedp.Navigate(url),
+		chromedp.WaitVisible("body"),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			if params.PreferCSSPageSize {
+				return chromedp.Evaluate(fmt.Sprintf(`(function() {
+						var style = document.createElement('style');
+						style.type = 'text/css';
+						style.innerHTML = %q;
+						document.head.appendChild(style);
+					})()`, customCSS), nil).Do(ctx)
+			}
+
+			return nil
+		}),
+		chromedp.Sleep(time.Second * 1),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			select {
+			case <-loadEventFired:
+				var err error
+
+				buf, _, err = params.Do(ctx)
+				return err
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}),
+	})
 	if err != nil {
-		ErrLogger.Println(err)
-		ErrLogger.Println(errbuffer.String())
-		return err
+		Log.Error(err)
+		return "", err
 	}
-	return nil
+	defer page.Close()
+
+	tmpFile, err := ioutil.TempFile("", "*.pdf")
+	if err != nil {
+		Log.Error(err)
+		return "", err
+	}
+	defer tmpFile.Close()
+	// 保存 PDF 文件
+	if _, err := tmpFile.Write(buf); err != nil {
+		Log.Error(err)
+		return "", err
+	}
+
+	return filepath.ToSlash(tmpFile.Name()), nil
+}
+
+func (pdf *HTMLPDF) run(url string) (string, error) {
+	params := &page.PrintToPDFParams{
+		PaperWidth:  8.27, //A4
+		PaperHeight: 11.69, //A4
+		Landscape:    false,
+		PrintBackground: true,
+		MarginTop:    0,
+		MarginBottom: 0,
+		MarginLeft:   0,
+		MarginRight:  0,
+		PreferCSSPageSize: true,
+		Scale: 0.64,
+	}
+
+	return pdf.WithParamsRun(url, params)
 }
 
 func (pdf *HTMLPDF) BuildFromLink(link string) (local_pdf string, err error) {
-	pdf_name := fmt.Sprintf("%d.pdf", time.Now().UnixNano()+rand.Int63())
-	pdf_name = path.Join(pdf.config.TempPath, pdf_name)
-
-	err = pdf.run(link, pdf_name)
+	pdf_name, err := pdf.run(link)
 	if err != nil {
 		return "", err
 	}
@@ -129,18 +161,21 @@ func (pdf *HTMLPDF) BuildFromLink(link string) (local_pdf string, err error) {
 }
 
 func (pdf *HTMLPDF) BuildFromSource(html []byte) (local_pdf string, err error) {
-	tmp_name := fmt.Sprintf("%d.html", time.Now().UnixNano()+rand.Int63())
-	tmp_name = path.Join(pdf.config.TempPath, tmp_name)
-	err = ioutil.WriteFile(tmp_name, html, 0777)
+
+	tmpFile, err := ioutil.TempFile("", "*.html")
 	if err != nil {
-		return
+		Log.Error(err)
+		return "", err
 	}
-	defer os.Remove(tmp_name)
+	defer tmpFile.Close()
+	// 保存 PDF 文件
+	if _, err := tmpFile.Write(html); err != nil {
+		Log.Error(err)
+		return "", err
+	}
 
-	pdf_name := fmt.Sprintf("%d.pdf", time.Now().UnixNano()+rand.Int63())
-	pdf_name = path.Join(pdf.config.TempPath, pdf_name)
 
-	err = pdf.run(tmp_name, pdf_name)
+	pdf_name, err := pdf.run(fmt.Sprintf("file://%s", tmpFile.Name()))
 	if err != nil {
 		return "", err
 	}
@@ -148,10 +183,15 @@ func (pdf *HTMLPDF) BuildFromSource(html []byte) (local_pdf string, err error) {
 	return pdf_name, nil
 }
 
-func (pdf *HTMLPDF) PDFTK_Combine(files []string) (dest_pdf_path string, err error) {
-	pdf_name := fmt.Sprintf("%d.pdf", time.Now().UnixNano()+rand.Int63())
-	pdf_name = path.Join(pdf.config.TempPath, pdf_name)
+func (pdf *HTMLPDF) Combine(files []string) (dest_pdf_path string, err error) {
+	tmpFile, err := ioutil.TempFile("", "*.html")
+	if err != nil {
+		Log.Error(err)
+		return "", err
+	}
+	tmpFile.Close()
 
+	pdf_name := filepath.ToSlash(tmpFile.Name())
 	err = CombinePDF(files, pdf_name)
 	if err != nil {
 		return pdf_name, err

@@ -1,10 +1,7 @@
 {
-    "listen": "${HOST}",
-    "tmp_path": "/tmp",
-    "web_root": "${ROOT}",
-    "webkit_bin": "/usr/bin/phantomjs",
-	"cache_ttl": ${TLL},
-    "worker": ${WORKER},
-    "timeout": ${TIMEOUT},
-    "webkit_args": [ "--ignore-ssl-errors=true", "/app/render/pdf.js" ]
+    "chrome_path": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "listen": "0.0.0.0:4444",
+    "web_root": "F:/TestProject/golang/html2pdf",
+    "worker": 2,
+    "timeout": 3000
 }

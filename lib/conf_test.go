@@ -1,19 +1,22 @@
 package lib
 
 import (
-	"path/filepath"
-	"runtime"
+	"html2pdf/tests"
 	"testing"
 )
 
-func getLocalConfigPath(file string) string {
-	_, filename, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(filename), file)
+func loadConfig() (*Config, error) {
+	err, conf := NewConfig(tests.GetLocalPath("../config.json"))
+	if err != nil {
+		return nil, err
+	}
+	conf = conf.LoadWithENV()
+	return conf, nil
 }
 
 func Test_SaveConfig(t *testing.T) {
 
-	err, conf := NewConfig(getLocalConfigPath("../config.json"))
+	conf, err := loadConfig()
 	if err != nil {
 		t.Log(err)
 		t.Fail()

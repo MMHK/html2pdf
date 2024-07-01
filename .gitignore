@@ -16,3 +16,7 @@
 /bin
 /vendor
 /.idea
+.env
+/tests/*.pdf
+/tests/*.png
+/tests/*.html
