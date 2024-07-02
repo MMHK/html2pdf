@@ -1,0 +1,15 @@
+version: "3.7"
+
+services:
+  app:
+    image: mmhk/html2pdf:chromedp
+    restart: always
+    environment:
+      - LISTEN=0.0.0.0:4444
+      - WEB_ROOT=/app/web_root
+      - TIMEOUT=60
+      - CHROME_PATH=/headless-shell/headless-shell
+      - LOG_LEVEL=INFO
+      - TZ=Asia/Hong_Kong
+    ports:
+      - 4444:4444

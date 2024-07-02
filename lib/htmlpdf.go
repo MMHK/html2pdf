@@ -47,24 +47,45 @@ func (pdf *HTMLPDF) WithParamsRun(url string, params *page.PrintToPDFParams) (st
 		@page {
 			size: %.2fin %.2fin;
 			margin: %.2fin %.2fin %.2fin %.2fin;
-			zoom: %.2f;
 		}
-	`, params.PaperWidth, params.PaperHeight, params.MarginTop, params.MarginRight, params.MarginBottom, params.MarginLeft, params.Scale)
+		.page { page-break-inside: avoid; }
+
+	`, params.PaperWidth, params.PaperHeight, params.MarginTop, params.MarginRight, params.MarginBottom, params.MarginLeft)
 	if params.Landscape {
 		customCSS = fmt.Sprintf(`
 			@page {
 				size: %.2fin %.2fin;
 				margin: %.2fin %.2fin %.2fin %.2fin;
-				zoom: %.2f;
 			}
-		`, params.PaperHeight, params.PaperWidth, params.MarginTop, params.MarginRight, params.MarginBottom, params.MarginLeft, params.Scale)
+			.page { page-break-inside: avoid; }
+		`, params.PaperHeight, params.PaperWidth, params.MarginTop, params.MarginRight, params.MarginBottom, params.MarginLeft)
 	}
+
+	dpi := 150.0
+	PaperHeight := params.PaperHeight
+	PaperWidth := params.PaperWidth
+	if params.Landscape {
+		PaperHeight = params.PaperWidth
+		PaperWidth = params.PaperHeight
+	}
+	// 转换为视口尺寸（以像素为单位）
+	viewportWidth := int(PaperWidth * dpi)
+	viewportHeight := int(PaperHeight * dpi)
+
+	Log.Debugf("PaperHeight: %f, PaperWidth: %f, dpi: %f, viewportWidth: %d, viewportHeight: %d", PaperHeight, PaperWidth, dpi, viewportWidth, viewportHeight)
 
 
 	// 自定義 Chrome 路徑
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.ExecPath(pdf.config.ChromePath),
+		chromedp.Flag("disable-web-security",true),
+		chromedp.WindowSize(viewportWidth, viewportHeight + 50),
 	)
+
+	//logLevel, ok := os.LookupEnv("LOG_LEVEL")
+	//if ok && logLevel == "DEBUG" {
+	//	opts = append(opts, chromedp.Flag("headless", false))
+	//}
 
 	defaultCtx, cancel := context.WithTimeout(context.Background(), time.Second * time.Duration(pdf.config.Timeout))
 	defer cancel()
@@ -88,8 +109,9 @@ func (pdf *HTMLPDF) WithParamsRun(url string, params *page.PrintToPDFParams) (st
 	var buf []byte
 	err := chromedp.Run(ctx, chromedp.Tasks{
 		chromedp.Navigate(url),
-		chromedp.WaitVisible("body"),
+		chromedp.WaitReady("body"),
 		chromedp.ActionFunc(func(ctx context.Context) error {
+			Log.Debug("chromedp inject css")
 			if params.PreferCSSPageSize {
 				return chromedp.Evaluate(fmt.Sprintf(`(function() {
 						var style = document.createElement('style');
@@ -105,6 +127,7 @@ func (pdf *HTMLPDF) WithParamsRun(url string, params *page.PrintToPDFParams) (st
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			select {
 			case <-loadEventFired:
+				Log.Debug("chromedp load event fired")
 				var err error
 
 				buf, _, err = params.Do(ctx)

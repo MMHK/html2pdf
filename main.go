@@ -20,6 +20,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	conf = conf.LoadWithENV()
 
 	service := lib.NewHTTP(conf)
 	service.Start()
