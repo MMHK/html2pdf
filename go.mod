@@ -1,6 +1,6 @@
 module html2pdf
 
-go 1.12
+go 1.19
 
 require (
 	github.com/chromedp/cdproto v0.0.0-20240202021202-6d0b6a386732
@@ -12,4 +12,16 @@ require (
 	github.com/pdfcpu/pdfcpu v0.2.4
 )
 
-replace html2pdf => ./
+require (
+	github.com/chromedp/sysutil v1.0.0 // indirect
+	github.com/gobwas/httphead v0.1.0 // indirect
+	github.com/gobwas/pool v0.2.1 // indirect
+	github.com/gobwas/ws v1.3.2 // indirect
+	github.com/hhrutter/lzw v0.0.0-20190827003112-58b82c5a41cc // indirect
+	github.com/hhrutter/tiff v0.0.0-20190827003322-d08e2ad45835 // indirect
+	github.com/josharian/intern v1.0.0 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/pkg/errors v0.8.1 // indirect
+	golang.org/x/image v0.0.0-20190823064033-3a9bac650e44 // indirect
+	golang.org/x/sys v0.16.0 // indirect
+)

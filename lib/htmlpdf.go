@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
@@ -9,6 +10,9 @@ import (
 	"path/filepath"
 	"time"
 )
+
+//go:embed motorsPDFjsPatch.js
+var MOTORS_PDF_JS_PATCH string
 
 type TaskResult struct {
 	File  string
@@ -21,8 +25,15 @@ type Task struct {
 	taskCount int
 }
 
+type PDFOption struct {
+	page.PrintToPDFParams
+
+	patchMotors bool
+}
+
 type HTMLPDF struct {
 	config   *Config
+	pdfOption *PDFOption
 	jobQueue chan bool
 }
 
@@ -30,7 +41,30 @@ func NewHTMLPDF(conf *Config) *HTMLPDF {
 	return &HTMLPDF{
 		config:   conf,
 		jobQueue: make(chan bool, conf.Worker),
+		pdfOption: &PDFOption{
+			PrintToPDFParams: page.PrintToPDFParams{
+				PaperWidth:  8.27, //A4
+				PaperHeight: 11.69, //A4
+				MarginTop:   0,
+				MarginRight: 0,
+				MarginBottom: 0,
+				MarginLeft: 0,
+				Scale: 1,
+				Landscape: false,
+				PrintBackground: true,
+				PreferCSSPageSize: false,
+			},
+			patchMotors: true,
+		},
 	}
+}
+
+func (pdf *HTMLPDF) WithParams(params *page.PrintToPDFParams) *HTMLPDF {
+	pdf.pdfOption = &PDFOption{
+		PrintToPDFParams: *params,
+		patchMotors: pdf.pdfOption.patchMotors,
+	}
+	return pdf
 }
 
 func (pdf *HTMLPDF) WithParamsRun(url string, params *page.PrintToPDFParams) (string, error) {
@@ -39,34 +73,42 @@ func (pdf *HTMLPDF) WithParamsRun(url string, params *page.PrintToPDFParams) (st
 		<-pdf.jobQueue
 	}()
 
-	// 將 PrintToPDFParams 轉換為 CSS @page 樣式
-	if params.Scale == 0  {
-		params.Scale = 1
-	}
-	customCSS := fmt.Sprintf(`
-		@page {
-			size: %.2fin %.2fin;
-			margin: %.2fin %.2fin %.2fin %.2fin;
-		}
-		.page { page-break-inside: avoid; }
+	return pdf.WithParams(params).run(url)
+}
 
-	`, params.PaperWidth, params.PaperHeight, params.MarginTop, params.MarginRight, params.MarginBottom, params.MarginLeft)
-	if params.Landscape {
+func (pdf *HTMLPDF) run(url string) (string, error) {
+	// 將 PrintToPDFParams 轉換為 CSS @page 樣式
+	if pdf.pdfOption.Scale == 0  {
+		pdf.pdfOption.Scale = 1
+	}
+	customCSS := ""
+	if pdf.pdfOption.Landscape {
 		customCSS = fmt.Sprintf(`
 			@page {
 				size: %.2fin %.2fin;
 				margin: %.2fin %.2fin %.2fin %.2fin;
 			}
-			.page { page-break-inside: avoid; }
-		`, params.PaperHeight, params.PaperWidth, params.MarginTop, params.MarginRight, params.MarginBottom, params.MarginLeft)
+		`, pdf.pdfOption.PaperHeight, pdf.pdfOption.PaperWidth, pdf.pdfOption.MarginTop, pdf.pdfOption.MarginRight, pdf.pdfOption.MarginBottom, pdf.pdfOption.MarginLeft)
+	} else {
+		customCSS = fmt.Sprintf(`
+		@page {
+			size: %.2fin %.2fin;
+			margin: %.2fin %.2fin %.2fin %.2fin;
+		}
+	`, pdf.pdfOption.PaperWidth, pdf.pdfOption.PaperHeight, pdf.pdfOption.MarginTop, pdf.pdfOption.MarginRight, pdf.pdfOption.MarginBottom, pdf.pdfOption.MarginLeft)
+	}
+
+	PreferCSSPageSize := false;
+	if pdf.pdfOption.PreferCSSPageSize || pdf.pdfOption.patchMotors {
+		PreferCSSPageSize = true
 	}
 
 	dpi := 150.0
-	PaperHeight := params.PaperHeight
-	PaperWidth := params.PaperWidth
-	if params.Landscape {
-		PaperHeight = params.PaperWidth
-		PaperWidth = params.PaperHeight
+	PaperHeight := pdf.pdfOption.PaperHeight
+	PaperWidth := pdf.pdfOption.PaperWidth
+	if pdf.pdfOption.Landscape {
+		PaperHeight = pdf.pdfOption.PaperWidth
+		PaperWidth = pdf.pdfOption.PaperHeight
 	}
 	// 转换为视口尺寸（以像素为单位）
 	viewportWidth := int(PaperWidth * dpi)
@@ -104,15 +146,28 @@ func (pdf *HTMLPDF) WithParamsRun(url string, params *page.PrintToPDFParams) (st
 		case *page.EventLoadEventFired:
 			close(loadEventFired)
 		}
+
 	})
+
+	waitTime := time.Second * 1
+	if pdf.pdfOption.patchMotors {
+		waitTime = time.Second * 3
+	}
 
 	var buf []byte
 	err := chromedp.Run(ctx, chromedp.Tasks{
 		chromedp.Navigate(url),
 		chromedp.WaitReady("body"),
 		chromedp.ActionFunc(func(ctx context.Context) error {
+			Log.Debug("chromedp js patch")
+			if pdf.pdfOption.patchMotors {
+				return chromedp.Evaluate(string(MOTORS_PDF_JS_PATCH), nil).Do(ctx)
+			}
+			return nil
+		}),
+		chromedp.ActionFunc(func(ctx context.Context) error {
 			Log.Debug("chromedp inject css")
-			if params.PreferCSSPageSize {
+			if PreferCSSPageSize && len(customCSS) > 0 {
 				return chromedp.Evaluate(fmt.Sprintf(`(function() {
 						var style = document.createElement('style');
 						style.type = 'text/css';
@@ -123,14 +178,14 @@ func (pdf *HTMLPDF) WithParamsRun(url string, params *page.PrintToPDFParams) (st
 
 			return nil
 		}),
-		chromedp.Sleep(time.Second * 1),
+		chromedp.Sleep(waitTime),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			select {
 			case <-loadEventFired:
 				Log.Debug("chromedp load event fired")
 				var err error
 
-				buf, _, err = params.Do(ctx)
+				buf, _, err = pdf.pdfOption.Do(ctx)
 				return err
 			case <-ctx.Done():
 				return ctx.Err()
@@ -156,23 +211,6 @@ func (pdf *HTMLPDF) WithParamsRun(url string, params *page.PrintToPDFParams) (st
 	}
 
 	return filepath.ToSlash(tmpFile.Name()), nil
-}
-
-func (pdf *HTMLPDF) run(url string) (string, error) {
-	params := &page.PrintToPDFParams{
-		PaperWidth:  8.27, //A4
-		PaperHeight: 11.69, //A4
-		Landscape:    false,
-		PrintBackground: true,
-		MarginTop:    0,
-		MarginBottom: 0,
-		MarginLeft:   0,
-		MarginRight:  0,
-		PreferCSSPageSize: true,
-		Scale: 0.64,
-	}
-
-	return pdf.WithParamsRun(url, params)
 }
 
 func (pdf *HTMLPDF) BuildFromLink(link string) (local_pdf string, err error) {

@@ -40,8 +40,7 @@ func TestHTMLPDF_WithParamsRun(t *testing.T) {
 	}
 
 	pdf := NewHTMLPDF(conf)
-	//file, err := pdf.WithParamsRun("https://v5.geestar.mixmedia.com/api/receipt/quotation?quo_id=1612", &page.PrintToPDFParams{
-	file, err := pdf.WithParamsRun("file://C:/Users/mixmedia/Downloads/QDA-AA-00049-Quotation.html", &page.PrintToPDFParams{
+	file, err := pdf.WithParamsRun("https://v5.geestar.mixmedia.com/api/receipt/proposal?order_id=10", &page.PrintToPDFParams{
 		PaperWidth:  8.27, //A4
 		PaperHeight: 11.69, //A4
 		Landscape:    false,
@@ -51,8 +50,7 @@ func TestHTMLPDF_WithParamsRun(t *testing.T) {
 		MarginLeft:   0,
 		MarginRight:  0,
 		PreferCSSPageSize: true,
-		Scale: 0.64,
-		//Scale: 1,
+		Scale: 1,
 	})
 	if err != nil {
 		t.Log(err)
