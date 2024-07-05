@@ -1,4 +1,4 @@
-FROM golang:1.12-alpine as builder
+FROM golang:1.19-alpine as builder
 
 # Add Maintainer Info
 LABEL maintainer="Sam Zhou <sam@mixmedia.com>"
@@ -13,11 +13,12 @@ COPY . /app
 RUN go version \
  && export GO111MODULE=on \
  && export GOPROXY=https://goproxy.io \
+ && go mod tidy \
  && go mod vendor \
  && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o html2pdf
 
-######## Start a new stage from scratch #######
-FROM debian:stretch-slim
+######## Start a new stage from bookworm #######
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
@@ -34,14 +35,9 @@ RUN set -x  \
  && apt-get install -y --no-install-recommends \
         ca-certificates \
         bzip2 \
-        libfontconfig \
+        dumb-init \
         curl \
         git \
-        fonts-droid-fallback \
-        ttf-wqy-zenhei \
-        ttf-wqy-microhei \
-        fonts-arphic-ukai \
-        fonts-arphic-uming \
         gettext-base \
 # Install official PhantomJS release
  && mkdir /tmp/phantomjs \
@@ -49,13 +45,27 @@ RUN set -x  \
         | tar -xj --strip-components=1 -C /tmp/phantomjs \
  && mv /tmp/phantomjs/bin/phantomjs /usr/local/bin/phantomjs \
  && ln -s /usr/local/bin/phantomjs /usr/bin/phantomjs \
-# config font 
+# config font
+ && echo "deb http://deb.debian.org/debian/ bookworm main contrib" > /etc/apt/sources.list \
+ && echo "deb-src http://deb.debian.org/debian/ bookworm main contrib" >> /etc/apt/sources.list \
+ && echo "deb http://security.debian.org/ bookworm-security main contrib" >> /etc/apt/sources.list \
+ && echo "deb-src http://security.debian.org/ bookworm-security main contrib" >> /etc/apt/sources.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends \
+         fontconfig \
+         libfontconfig \
+         fonts-liberation \
+         fonts-arphic-uming \
+         fonts-arphic-ukai \
+         fonts-droid-fallback \
+         fonts-wqy-microhei \
+         fonts-wqy-zenhei \
+         fonts-noto \
+         fonts-noto-cjk \
+         fonts-unfonts-core \
+         ttf-mscorefonts-installer \
  && cp -r /app/font-conf/10-* /etc/fonts/conf.d/ \
  && fc-cache -fv \
-# Install dumb-init (to handle PID 1 correctly).
-# https://github.com/Yelp/dumb-init
- && curl -Lo /tmp/dumb-init.deb https://github.com/Yelp/dumb-init/releases/download/v1.1.3/dumb-init_1.1.3_amd64.deb \
- && dpkg -i /tmp/dumb-init.deb \
 # Clean up
  && apt-get purge --auto-remove -y \
         curl git \

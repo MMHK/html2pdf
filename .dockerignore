@@ -1,0 +1,8 @@
+vendor
+tests/*.pdf
+tests/*.png
+tests/*.html
+.git
+.idea
+.env
+.env.example

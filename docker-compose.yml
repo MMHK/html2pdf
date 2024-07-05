@@ -1,0 +1,16 @@
+version: "3.7"
+
+services:
+  app:
+    image: mmhk/html2pdf
+    restart: always
+    environment:
+      - HOST=0.0.0.0:4444
+      - ROOT=/app/web_root
+      - TIMEOUT=60
+      - WORKER=4
+      - TLL=3600
+      - LOG_LEVEL=INFO
+      - TZ=Asia/Hong_Kong
+    ports:
+      - 4444:4444
