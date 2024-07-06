@@ -149,11 +149,6 @@ func (pdf *HTMLPDF) run(url string) (string, error) {
 
 	})
 
-	waitTime := time.Second * 1
-	if pdf.pdfOption.patchMotors {
-		waitTime = time.Second * 3
-	}
-
 	var buf []byte
 	err := chromedp.Run(ctx, chromedp.Tasks{
 		chromedp.Navigate(url),
@@ -161,11 +156,16 @@ func (pdf *HTMLPDF) run(url string) (string, error) {
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			Log.Debug("chromedp js patch")
 			if pdf.pdfOption.patchMotors {
-				return chromedp.Evaluate(string(MOTORS_PDF_JS_PATCH), nil).Do(ctx)
+				err := chromedp.Evaluate(string(MOTORS_PDF_JS_PATCH), nil).Do(ctx)
+				if err != nil {
+					Log.Error(err)
+					return err
+				}
+
+				return chromedp.WaitReady("span[data-scrip-done=true]").Do(ctx)
 			}
 			return nil
 		}),
-		chromedp.WaitReady("span[data-scrip-done=true]"),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			Log.Debug("chromedp inject css")
 			if PreferCSSPageSize && len(customCSS) > 0 {
@@ -179,7 +179,6 @@ func (pdf *HTMLPDF) run(url string) (string, error) {
 
 			return nil
 		}),
-		chromedp.Sleep(waitTime),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			select {
 			case <-loadEventFired:
