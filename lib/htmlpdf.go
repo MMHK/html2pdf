@@ -120,6 +120,7 @@ func (pdf *HTMLPDF) run(url string) (string, error) {
 	// 自定義 Chrome 路徑
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.ExecPath(pdf.config.ChromePath),
+		chromedp.DisableGPU,
 		chromedp.Flag("disable-web-security",true),
 		chromedp.WindowSize(viewportWidth, viewportHeight + 50),
 	)
