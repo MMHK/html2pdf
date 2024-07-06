@@ -165,6 +165,7 @@ func (pdf *HTMLPDF) run(url string) (string, error) {
 			}
 			return nil
 		}),
+		chromedp.WaitReady("span[data-scrip-done=true]"),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			Log.Debug("chromedp inject css")
 			if PreferCSSPageSize && len(customCSS) > 0 {
