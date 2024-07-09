@@ -169,7 +169,7 @@ func (pdf *HTMLPDF) run(url string) (string, error) {
 		}),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			Log.Debug("chromedp inject css")
-			if PreferCSSPageSize && len(customCSS) > 0 {
+			if !pdf.pdfOption.patchMotors && PreferCSSPageSize && len(customCSS) > 0 {
 				return chromedp.Evaluate(fmt.Sprintf(`(function() {
 						var style = document.createElement('style');
 						style.type = 'text/css';
@@ -185,6 +185,8 @@ func (pdf *HTMLPDF) run(url string) (string, error) {
 			case <-loadEventFired:
 				Log.Debug("chromedp load event fired")
 				var err error
+
+				pdf.pdfOption.PreferCSSPageSize = PreferCSSPageSize
 
 				buf, _, err = pdf.pdfOption.Do(ctx)
 				return err
