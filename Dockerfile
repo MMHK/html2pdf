@@ -34,10 +34,10 @@ RUN set -x  \
         dumb-init \
         gettext-base \
 # config font
- && echo "deb http://deb.debian.org/debian/ bookworm main contrib" > /etc/apt/sources.list \
- && echo "deb-src http://deb.debian.org/debian/ bookworm main contrib" >> /etc/apt/sources.list \
- && echo "deb http://security.debian.org/ bookworm-security main contrib" >> /etc/apt/sources.list \
- && echo "deb-src http://security.debian.org/ bookworm-security main contrib" >> /etc/apt/sources.list \
+ && echo "deb https://deb.debian.org/debian/ bookworm main contrib" > /etc/apt/sources.list \
+ && echo "deb-src https://deb.debian.org/debian/ bookworm main contrib" >> /etc/apt/sources.list \
+ && echo "deb https://security.debian.org/ bookworm-security main contrib" >> /etc/apt/sources.list \
+ && echo "deb-src https://security.debian.org/ bookworm-security main contrib" >> /etc/apt/sources.list \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
         fontconfig \
