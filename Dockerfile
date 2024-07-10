@@ -12,7 +12,7 @@ COPY . /app
 # Build the Go app
 RUN go version \
  && export GO111MODULE=on \
- && export GOPROXY=https://goproxy.io \
+ && export GOPROXY=https://goproxy.io,direct \
  && go mod vendor \
  && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o html2pdf
 
