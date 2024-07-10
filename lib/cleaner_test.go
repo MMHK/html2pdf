@@ -12,7 +12,7 @@ func TestCleaner_Start(t *testing.T) {
 
 	cleaner.Start()
 
-	time.Sleep(time.Second *30)
+	time.Sleep(time.Second *50)
 
 	t.Log("PASS")
 }

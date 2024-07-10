@@ -54,8 +54,8 @@ func (c *Cleaner) cleanTmpDir() {
 		}
 
 		filePath := filepath.Join(c.tmpDir, entry.Name())
-		if now.Sub(fileInfo.ModTime()) > c.fileAgeLimit {
-			err := os.Remove(filePath)
+		if !entry.IsDir() && now.Sub(fileInfo.ModTime()) > c.fileAgeLimit {
+			err := os.RemoveAll(filePath)
 			if err != nil {
 				Log.Errorf("Failed to delete file %s: %v\n", filePath, err)
 			} else {
