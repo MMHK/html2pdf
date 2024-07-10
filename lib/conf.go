@@ -6,17 +6,28 @@ import (
 	"strconv"
 )
 
+type CleanerConfig struct {
+	CleanupPeriod int `json:"period"`
+	FileAgeLimit  int `json:"expire"`
+}
+
 type Config struct {
 	ChromePath string `json:"chrome_path"`
 	Listen     string `json:"listen"`
 	WebRoot    string `json:"web_root"`
 	Worker     int    `json:"worker"`
 	Timeout    int    `json:"timeout"`
-	save_path  string
+	Cleaner    *CleanerConfig `json:"cleaner"`
+	save_path string
 }
 
 func NewConfig(filename string) (err error, c *Config) {
-	c = &Config{}
+	c = &Config{
+		Cleaner: &CleanerConfig {
+			CleanupPeriod: 1800, // 30 minutes
+			FileAgeLimit : 86400, // 1 day
+		},
+	}
 	c.save_path = filename
 	err = c.load(filename)
 	return
@@ -37,6 +48,12 @@ func (this *Config) LoadWithENV() *Config {
 	}
 	if os.Getenv("CHROME_PATH") != "" {
 		this.ChromePath = os.Getenv("CHROME_PATH")
+	}
+	if os.Getenv("CLEANER_PERIOD") != "" {
+		this.Cleaner.CleanupPeriod, _ = strconv.Atoi(os.Getenv("CLEANER_PERIOD"))
+	}
+	if os.Getenv("CLEANER_FILE_AGE_LIMIT") != "" {
+		this.Cleaner.FileAgeLimit, _ = strconv.Atoi(os.Getenv("CLEANER_FILE_AGE_LIMIT"))
 	}
 
 	return this

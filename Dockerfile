@@ -63,6 +63,8 @@ ENV WORKER=4 \
  TIMEOUT=60 \
  CHROME_PATH=/headless-shell/headless-shell \
  LOG_LEVEL=INFO \
+ CLEANER_PERIOD=1800 \
+ CLEANER_FILE_AGE_LIMIT=86400 \
  TZ=Asia/Hong_Kong
 
 EXPOSE 4444
