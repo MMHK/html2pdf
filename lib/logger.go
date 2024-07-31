@@ -1,11 +1,26 @@
 package lib
 
 import (
-	"log"
+	"github.com/op/go-logging"
 	"os"
 )
 
-var (
-	InfoLogger = log.New(os.Stdout, "INFO|", log.LstdFlags|log.Lshortfile)
-	ErrLogger  = log.New(os.Stderr, "ERROR|", log.LstdFlags|log.Lshortfile)
-)
+var Logger = logging.MustGetLogger("html2pdf")
+
+func init() {
+	format := logging.MustStringFormatter(
+		`HTML2PDF %{color} %{shortfunc} %{level:.4s} %{shortfile}
+%{id:03x}%{color:reset} %{message}`,
+	)
+	logging.SetFormatter(format)
+
+	levelStr := os.Getenv("LOG_LEVEL")
+	if len(levelStr) == 0 {
+		levelStr = "INFO"
+	}
+	level, err := logging.LogLevel(levelStr)
+	if err != nil {
+		level = logging.INFO
+	}
+	logging.SetLevel(level, "html2pdf")
+}

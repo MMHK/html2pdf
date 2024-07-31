@@ -1,122 +1,116 @@
-swagger: '2.0'
+openapi: 3.0.1
 info:
-  description: >-
-    <p>将 HTML 渲染成 PDF 文件，此项目用 Golang 开发，提供一个HTTP 接口将本地</p><p>或者远程HTML页面输出成为 PDF
-    文件格式。</p><p><br></p><p>使用 HTML 作为模板的原因是因为HTML的表达能力最好。</p>
-  version: V1
   title: HTML2PDF
+  description: <p>将 HTML 渲染成 PDF 文件，此项目用 Golang 开发，提供一个HTTP 接口将本地</p><p>或者远程HTML页面输出成为
+    PDF 文件格式。</p><p><br></p><p>使用 HTML 作为模板的原因是因为HTML的表达能力最好。</p>
+  version: v1.0
+servers:
+- url: /
 tags: []
-host: "192.168.33.126:4444"
-basePath: "/"
-schemes:
-- http
-consumes: []
-produces: []
 paths:
   /combine:
     post:
       tags: []
       summary: 合并PDF
       description: <p>根据提供的PDF URL合并成一个PDF<br></p>
-      operationId: ''
-      schemes:
-        - http
-      consumes:
-        - application/x-www-form-urlencoded
-      produces:
-        - application/pdf
-      parameters:
-        - name: file
-          in: formData
-          description: 多个公网可访问的PDF下载地址
-          required: true
-          type: array
-          collectionFormat: multi
-          default: ''
-          format: ''
-          items:
-            type: string
-      responses: 
-        500:
+      operationId: "pdf-combine"
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - file
+              type: object
+              properties:
+                file:
+                  type: array
+                  description: 多个公网可访问的PDF下载地址
+                  items:
+                    type: string
+        required: true
+      responses:
+        "500":
           description: API报错
-        200:
+          content: {}
+        "200":
           description: PDF文件内容
+          content: {}
   /link/combine:
     post:
       tags: []
       summary: 合并URL地址为PDF
       description: <p>根据提供的PDF URL或者页面URL，合并成一个PDF<br> 网页URL将会转化为PDF</p>
-      operationId: ''
-      schemes:
-        - http
-      consumes:
-        - application/x-www-form-urlencoded
-      produces:
-        - application/pdf
-      parameters:
-        - name: file
-          in: formData
-          description: 多个公网可访问的PDF下载地址 或 网页URL
-          required: true
-          type: array
-          collectionFormat: multi
-          default: ''
-          format: ''
-          items:
-            type: string
-      responses: 
-        500:
+      operationId: "link-combine"
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - file
+              type: object
+              properties:
+                file:
+                  type: array
+                  description: 多个公网可访问的PDF下载地址 或 网页URL
+                  items:
+                    type: string
+        required: true
+      responses:
+        "500":
           description: API报错
-        200:
+          content: {}
+        "200":
           description: PDF文件内容
+          content: {}
   /htmlpdf:
     post:
       tags: []
       summary: 将HTML内容转换成PDF
       description: <p>将HTML内容转换成PDF<br></p>
-      operationId: ''
-      schemes:
-        - http
-      consumes:
-        - multipart/form-data
-      produces:
-        - application/pdf
-      parameters:
-        - name: upload
-          in: formData
-          description: 需要转换成PDF的页面HTML
-          required: true
-          type: string
-          default: ''
-          format: ''
-      responses: 
-        500:
+      operationId: "html2pdf"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              required:
+              - upload
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: textarea
+                  description: 需要转换成PDF的页面HTML
+        required: true
+      responses:
+        "500":
           description: API报错
-        200:
+          content: {}
+        "200":
           description: PDF文件内容
+          content: {}
   /linkpdf:
     post:
       tags: []
       summary: 将网址转换成PDF
       description: <p>将网址转换成PDF<br></p>
-      operationId: ''
-      schemes:
-        - http
-      consumes:
-        - multipart/form-data
-      produces:
-        - application/pdf
-      parameters:
-        - name: link
-          in: formData
-          description: 需要转换成PDF的页面URL
-          required: true
-          type: string
-          default: ''
-          format: ''
+      operationId: "link2pdf"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              required:
+              - link
+              type: object
+              properties:
+                link:
+                  type: string
+                  description: 需要转换成PDF的页面URL
+        required: true
       responses:
-        500:
+        "500":
           description: API报错
-        200:
+          content: {}
+        "200":
           description: PDF文件内容
-
+          content: {}
+components: {}

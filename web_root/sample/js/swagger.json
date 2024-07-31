@@ -1,0 +1,172 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "HTML2PDF",
+    "description": "<p>将 HTML 渲染成 PDF 文件，此项目用 Golang 开发，提供一个HTTP 接口将本地</p><p>或者远程HTML页面输出成为 PDF 文件格式。</p><p><br></p><p>使用 HTML 作为模板的原因是因为HTML的表达能力最好。</p>",
+    "version": "v1.0"
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [],
+  "paths": {
+    "/combine": {
+      "post": {
+        "tags": [],
+        "summary": "合并PDF",
+        "description": "<p>根据提供的PDF URL合并成一个PDF<br></p>",
+        "operationId": "pdf-combine",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "array",
+                    "description": "多个公网可访问的PDF下载地址",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "PDF文件内容",
+            "content": {}
+          },
+          "500": {
+            "description": "API报错",
+            "content": {}
+          }
+        }
+      }
+    },
+    "/link/combine": {
+      "post": {
+        "tags": [],
+        "summary": "合并URL地址为PDF",
+        "description": "<p>根据提供的PDF URL或者页面URL，合并成一个PDF<br> 网页URL将会转化为PDF</p>",
+        "operationId": "link-combine",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "array",
+                    "description": "多个公网可访问的PDF下载地址 或 网页URL",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "PDF文件内容",
+            "content": {}
+          },
+          "500": {
+            "description": "API报错",
+            "content": {}
+          }
+        }
+      }
+    },
+    "/htmlpdf": {
+      "post": {
+        "tags": [],
+        "summary": "将HTML内容转换成PDF",
+        "description": "<p>将HTML内容转换成PDF<br></p>",
+        "operationId": "html2pdf",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "upload"
+                ],
+                "type": "object",
+                "properties": {
+                  "upload": {
+                    "type": "string",
+                    "format": "textarea",
+                    "description": "需要转换成PDF的页面HTML"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "PDF文件内容",
+            "content": {}
+          },
+          "500": {
+            "description": "API报错",
+            "content": {}
+          }
+        }
+      }
+    },
+    "/linkpdf": {
+      "post": {
+        "tags": [],
+        "summary": "将网址转换成PDF",
+        "description": "<p>将网址转换成PDF<br></p>",
+        "operationId": "link2pdf",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "link"
+                ],
+                "type": "object",
+                "properties": {
+                  "link": {
+                    "type": "string",
+                    "description": "需要转换成PDF的页面URL"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "PDF文件内容",
+            "content": {}
+          },
+          "500": {
+            "description": "API报错",
+            "content": {}
+          }
+        }
+      }
+    }
+  },
+  "components": {}
+}

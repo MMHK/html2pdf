@@ -36,8 +36,8 @@ func (s *HTTPService) Start() {
 		http.FileServer(http.Dir(fmt.Sprintf("%s/sample", s.config.WebRoot)))))
 	r.NotFoundHandler = http.HandlerFunc(s.NotFoundHandle)
 
-	InfoLogger.Println("http service starting")
-	InfoLogger.Printf("Please open http://%s\n", s.config.Listen)
+	Logger.Info("http service starting")
+	Logger.Infof("Please open http://%s\n", s.config.Listen)
 	http.ListenAndServe(s.config.Listen, r)
 }
 
@@ -59,7 +59,7 @@ func (s *HTTPService) HTMLPDF(writer http.ResponseWriter, request *http.Request)
 		request.ParseMultipartForm(32 << 20)
 		file, _, err := request.FormFile("upload")
 		if err != nil {
-			ErrLogger.Println(err)
+			Logger.Error(err)
 			http.Error(writer, err.Error(), 500)
 			return
 		}
@@ -67,7 +67,7 @@ func (s *HTTPService) HTMLPDF(writer http.ResponseWriter, request *http.Request)
 
 		bin, err = ioutil.ReadAll(file)
 		if err != nil {
-			ErrLogger.Println(err)
+			Logger.Error(err)
 			http.Error(writer, err.Error(), 500)
 			return
 		}
@@ -76,7 +76,7 @@ func (s *HTTPService) HTMLPDF(writer http.ResponseWriter, request *http.Request)
 	htmlpdf := NewHTMLPDF(s.config)
 	file, err := htmlpdf.BuildFromSource(bin)
 	if err != nil {
-		ErrLogger.Println(err)
+		Logger.Error(err)
 		http.Error(writer, err.Error(), 500)
 		return
 	}
@@ -105,7 +105,7 @@ func (s *HTTPService) LINKPDF(writer http.ResponseWriter, request *http.Request)
 	htmlpdf := NewHTMLPDF(s.config)
 	file, err := htmlpdf.BuildFromLink(link)
 	if err != nil {
-		ErrLogger.Println(err)
+		Logger.Error(err)
 		http.Error(writer, err.Error(), 500)
 		return
 	}
@@ -144,11 +144,11 @@ func (s *HTTPService) LinkCombine(writer http.ResponseWriter, request *http.Requ
 				file_url := value
 
 				task.AddTask(func() (string, error) {
-					InfoLogger.Println("handle url:", file_url)
+					Logger.Infof("handle url:", file_url)
 					//分析url路径
 					urlInfo, err := url.Parse(file_url)
 					if err != nil {
-						ErrLogger.Println(err)
+						Logger.Error(err)
 						return file_url, nil
 					}
 					//判定文件后缀是否pdf
@@ -161,7 +161,7 @@ func (s *HTTPService) LinkCombine(writer http.ResponseWriter, request *http.Requ
 			}
 
 			task.TaskDone(func(list []*TaskResult) {
-				InfoLogger.Println("task list:", list)
+				Logger.Info("task list:", list)
 
 				for _, item := range list {
 
@@ -227,7 +227,7 @@ func (s *HTTPService) COMBINE(writer http.ResponseWriter, request *http.Request)
 		if strings.EqualFold(key, "file") {
 			d := NewDownloader(values, s.config.TempPath, s.config)
 
-			InfoLogger.Println(values)
+			Logger.Info(values)
 
 			d.Start()
 			d.Done(func(list []string) {

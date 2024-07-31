@@ -50,13 +50,13 @@ func NewDownloader(UrlList []string, tempPath string, conf *Config) *Downloader 
 	}
 }
 
-//下载远程文件
+// 下载远程文件
 func (d *Downloader) DownloadRemoteFile(remoteURL string, index int) {
-	InfoLogger.Println("begin download file, url:", remoteURL)
+	Logger.Infof("begin download file, url:\n", remoteURL)
 	var ext string
 	urlInfo, err := url.Parse(remoteURL)
 	if err != nil {
-		ErrLogger.Println(err)
+		Logger.Error(err)
 	}
 	ext = filepath.Ext(urlInfo.Path)
 	if !strings.Contains(ext, ".") {
@@ -69,10 +69,10 @@ func (d *Downloader) DownloadRemoteFile(remoteURL string, index int) {
 
 	//检查是否存在本地缓存
 	if info, err := os.Stat(cachePath); err == nil &&
-			info.Size() > 0 {
+		info.Size() > 0 {
 		//检查cache file 是否已经失效
 		if info.ModTime().Add(time.Duration(d.config.CacheTTL) * time.Second).After(time.Now()) {
-			InfoLogger.Println("cache file hint, path:" + cachePath)
+			Logger.Infof("cache file hint, path:%s\n", cachePath)
 			d.downloadJob <- JobItem{
 				Name:      filename,
 				LocalPath: cachePath,
@@ -84,7 +84,7 @@ func (d *Downloader) DownloadRemoteFile(remoteURL string, index int) {
 	}
 	//检查是否存在本地文件，即remoteURL 为本地文件路劲
 	if _, err := os.Stat(remoteURL); err == nil {
-		InfoLogger.Println("local file hint, path:" + remoteURL)
+		Logger.Infof("local file hint, path:%s\n", remoteURL)
 		d.downloadJob <- JobItem{
 			Name:      filepath.Base(remoteURL),
 			LocalPath: remoteURL,
@@ -96,7 +96,7 @@ func (d *Downloader) DownloadRemoteFile(remoteURL string, index int) {
 
 	defer (func() {
 		if err := recover(); err != nil {
-			ErrLogger.Println(err)
+			Logger.Error(err)
 		} else {
 			d.downloadJob <- JobItem{
 				Name:      filename,
@@ -109,14 +109,14 @@ func (d *Downloader) DownloadRemoteFile(remoteURL string, index int) {
 
 	file, err := os.Create(basePath)
 	if err != nil {
-		ErrLogger.Println(err)
+		Logger.Error(err)
 		return
 	}
 	defer file.Close()
 
 	resp, err := http.Get(remoteURL)
 	if err != nil {
-		ErrLogger.Println(err)
+		Logger.Error(err)
 		return
 	}
 	defer resp.Body.Close()
@@ -137,7 +137,7 @@ func (d *Downloader) Done(callback func([]string)) {
 	for {
 		item := <-d.downloadJob
 		local_list[item.Index] = item.LocalPath
-		InfoLogger.Println("a download job Done.")
+		Logger.Info("a download job Done.")
 		d.CacheFile(item)
 		d.fileCount--
 		if d.fileCount <= 0 {
@@ -167,11 +167,11 @@ func (d *Downloader) CacheFile(item JobItem) {
 		tempPath := destPath + ".tmp"
 		err := d.Copy(item.LocalPath, tempPath)
 		if err != nil {
-			ErrLogger.Println(err)
+			Logger.Error(err)
 		}
 		err = os.Rename(tempPath, destPath)
 		if err != nil {
-			ErrLogger.Println(err)
+			Logger.Error(err)
 		}
 	}
 
@@ -216,13 +216,13 @@ func Filter(vs []string, f func(string) bool) []string {
 func ConvertToPdf(src_image_path string, dest_pdf_path string) error {
 	src_image, err := os.Open(src_image_path)
 	if err != nil {
-		ErrLogger.Println(err)
+		Logger.Error(err)
 		return err
 	}
 	defer src_image.Close()
 	img, _, err := image.Decode(src_image)
 	if err != nil {
-		ErrLogger.Println(err)
+		Logger.Error(err)
 		return err
 	}
 	rect := img.Bounds()
@@ -238,7 +238,7 @@ func ConvertToPdf(src_image_path string, dest_pdf_path string) error {
 	pdf.Image(src_image_path, 0, 0, w, 0, false, "", 0, "")
 	err = pdf.OutputFileAndClose(dest_pdf_path)
 	if err != nil {
-		ErrLogger.Println(err)
+		Logger.Error(err)
 		return err
 	}
 
@@ -249,7 +249,7 @@ func CombinePDF(files []string, dest_pdf_path string) error {
 	//处理合并过程中可能出现的异常
 	defer func() {
 		if err := recover(); err != nil {
-			ErrLogger.Println(err)
+			Logger.Error(err)
 		}
 	}()
 
@@ -258,7 +258,7 @@ func CombinePDF(files []string, dest_pdf_path string) error {
 	cmd := cli.MergeCommand(files, dest_pdf_path, config)
 	_, err := cli.Process(cmd)
 	if err != nil {
-		ErrLogger.Println(err)
+		Logger.Error(err)
 		return err
 	}
 

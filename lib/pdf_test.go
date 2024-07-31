@@ -3,15 +3,10 @@ package lib
 import (
 	//	"os"
 	"path/filepath"
-	"runtime"
 	//	"strings"
 	"testing"
 )
 
-func getLocalConfigPath(file string) string {
-	_, filename, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(filename), file)
-}
 
 //func Test_Covert(t *testing.T) {
 //	files, err := filepath.Glob(getLocalConfigPath("../temp/combine/*"))

@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/exec"
 	"path"
@@ -82,7 +80,7 @@ func (t *Task) TaskDone(callback func([]*TaskResult)) {
 
 func (pdf *HTMLPDF) run(source_path string, pdf_path string) error {
 	pdf.buildJob <- true
-	InfoLogger.Printf("current html2pdf job count:%d\n", len(pdf.buildJob))
+	Logger.Infof("current html2pdf job count:%d\n", len(pdf.buildJob))
 
 	source_path = filepath.ToSlash(source_path)
 	bin_args := append(pdf.config.WebKitArgs, source_path, pdf_path)
@@ -91,7 +89,7 @@ func (pdf *HTMLPDF) run(source_path string, pdf_path string) error {
 	var errbuffer bytes.Buffer
 	cmd.Stderr = &outbuffer
 	cmd.Stderr = &errbuffer
-	InfoLogger.Println(cmd)
+	Logger.Debugf("raw command line: %s\n", cmd)
 
 	done := make(chan error, 1)
 
@@ -102,7 +100,7 @@ func (pdf *HTMLPDF) run(source_path string, pdf_path string) error {
 
 	select {
 	case err = <-done:
-		InfoLogger.Println("Done")
+		Logger.Info("Done")
 	case <-time.After(time.Second * time.Duration(pdf.config.Timeout)):
 		cmd.Process.Kill()
 		err = errors.New("timeout!")
@@ -110,15 +108,15 @@ func (pdf *HTMLPDF) run(source_path string, pdf_path string) error {
 
 	<-pdf.buildJob
 	if err != nil {
-		ErrLogger.Println(err)
-		ErrLogger.Println(errbuffer.String())
+		Logger.Error(err)
+		Logger.Error(errbuffer.String())
 		return err
 	}
 	return nil
 }
 
 func (pdf *HTMLPDF) BuildFromLink(link string) (local_pdf string, err error) {
-	pdf_name := fmt.Sprintf("%d.pdf", time.Now().UnixNano()+rand.Int63())
+	pdf_name := fmt.Sprintf("%s.pdf", MakeUUID())
 	pdf_name = path.Join(pdf.config.TempPath, pdf_name)
 
 	err = pdf.run(link, pdf_name)
@@ -129,16 +127,19 @@ func (pdf *HTMLPDF) BuildFromLink(link string) (local_pdf string, err error) {
 }
 
 func (pdf *HTMLPDF) BuildFromSource(html []byte) (local_pdf string, err error) {
-	tmp_name := fmt.Sprintf("%d.html", time.Now().UnixNano()+rand.Int63())
+	tmp_name := fmt.Sprintf("%s.html", MakeUUID())
 	tmp_name = path.Join(pdf.config.TempPath, tmp_name)
-	err = ioutil.WriteFile(tmp_name, html, 0777)
+
+	err = os.WriteFile(tmp_name, html, os.ModePerm)
 	if err != nil {
 		return
 	}
-	defer os.Remove(tmp_name)
+	//defer os.Remove(tmp_name)
 
-	pdf_name := fmt.Sprintf("%d.pdf", time.Now().UnixNano()+rand.Int63())
+	pdf_name := fmt.Sprintf("%s.pdf", MakeUUID())
 	pdf_name = path.Join(pdf.config.TempPath, pdf_name)
+
+	tmp_name = fmt.Sprintf("file:///%s", tmp_name)
 
 	err = pdf.run(tmp_name, pdf_name)
 	if err != nil {
@@ -149,7 +150,7 @@ func (pdf *HTMLPDF) BuildFromSource(html []byte) (local_pdf string, err error) {
 }
 
 func (pdf *HTMLPDF) PDFTK_Combine(files []string) (dest_pdf_path string, err error) {
-	pdf_name := fmt.Sprintf("%d.pdf", time.Now().UnixNano()+rand.Int63())
+	pdf_name := fmt.Sprintf("%s.pdf", MakeUUID())
 	pdf_name = path.Join(pdf.config.TempPath, pdf_name)
 
 	err = CombinePDF(files, pdf_name)
