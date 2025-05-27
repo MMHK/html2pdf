@@ -15,5 +15,5 @@ require (
 	github.com/hhrutter/lzw v0.0.0-20190827003112-58b82c5a41cc // indirect
 	github.com/hhrutter/tiff v0.0.0-20190827003322-d08e2ad45835 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
-	golang.org/x/image v0.0.0-20190823064033-3a9bac650e44 // indirect
+	golang.org/x/image v0.18.0 // indirect
 )

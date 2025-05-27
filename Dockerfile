@@ -1,4 +1,4 @@
-FROM golang:1.19-alpine as builder
+FROM golang:1.19-bookworm as builder
 
 # Add Maintainer Info
 LABEL maintainer="Sam Zhou <sam@mixmedia.com>"

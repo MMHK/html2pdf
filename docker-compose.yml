@@ -1,6 +1,14 @@
-version: "3.7"
+version: "3.8"
 
 services:
+  html2pdf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - "linux/amd64"
+    image: mmhk/html2pdf:latest
+
   app:
     image: mmhk/html2pdf
     restart: always
