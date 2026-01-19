@@ -1,4 +1,4 @@
-FROM golang:1.20-alpine as builder
+FROM golang:1.20.14-bullseye as builder
 
 # Add Maintainer Info
 LABEL maintainer="Sam Zhou <sam@mixmedia.com>"
@@ -10,11 +10,15 @@ WORKDIR /app
 COPY . /app
 
 # Build the Go app
-RUN go version \
- && export GOPROXY=https://goproxy.io \
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl git ca-certificates \
+ && go version \
+ && export GOPROXY=https://proxy.golang.org,direct \
  && go mod tidy \
  && go mod vendor \
- && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o html2pdf
+ && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o html2pdf \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 ######## Start a new stage from bullseye #######
 FROM chromedp/headless-shell:stable
@@ -26,20 +30,19 @@ COPY --from=builder /app/html2pdf .
 COPY --from=builder /app/web_root ./web_root
 COPY --from=builder /app/font-conf ./font-conf
 
-RUN set -x  \
-# Install runtime dependencies
- && apt-get update \
- && apt-get install -y --no-install-recommends \
+# 正確啟用 contrib（Trixie 使用 DEB822 格式，修改 debian.sources）
+RUN sed -i 's/Components: main$/Components: main contrib/' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update
+
+    # 安裝必要工具（下載字體需要）
+RUN apt-get install -y --no-install-recommends \
+        wget \
         ca-certificates \
-        dumb-init \
-        gettext-base \
-# config font
- && echo "deb https://deb.debian.org/debian/ bookworm main contrib" > /etc/apt/sources.list \
- && echo "deb-src https://deb.debian.org/debian/ bookworm main contrib" >> /etc/apt/sources.list \
- && echo "deb https://security.debian.org/ bookworm-security main contrib" >> /etc/apt/sources.list \
- && echo "deb-src https://security.debian.org/ bookworm-security main contrib" >> /etc/apt/sources.list \
- && apt-get update \
- && apt-get install -y --no-install-recommends \
+        cabextract \
+        xfonts-utils
+
+# 安裝其他字體包（這些沒問題）
+RUN apt-get install -y --no-install-recommends \
         fontconfig \
         fonts-liberation \
         fonts-arphic-uming \
@@ -49,8 +52,15 @@ RUN set -x  \
         fonts-wqy-zenhei \
         fonts-noto \
         fonts-noto-cjk \
-        fonts-unfonts-core \
-        ttf-mscorefonts-installer \
+        fonts-unfonts-core
+
+RUN set -x  \
+# Install runtime dependencies
+ && apt-get update \
+ && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        dumb-init \
+        gettext-base \
  && cp -r /app/font-conf/10-* /etc/fonts/conf.d/ \
  && fc-cache -fv \
 # Clean up
