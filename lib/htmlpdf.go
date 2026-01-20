@@ -8,11 +8,17 @@ import (
 	"github.com/chromedp/chromedp"
 	"io/ioutil"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
 //go:embed motorsPDFjsPatch.js
 var MOTORS_PDF_JS_PATCH string
+var (
+	allocatorCtx    context.Context
+	allocatorCancel context.CancelFunc
+	allocatorMu     sync.Mutex
+)
 
 type TaskResult struct {
 	File  string
@@ -32,9 +38,9 @@ type PDFOption struct {
 }
 
 type HTMLPDF struct {
-	config   *Config
+	config    *Config
 	pdfOption *PDFOption
-	jobQueue chan bool
+	jobQueue  chan bool
 }
 
 func NewHTMLPDF(conf *Config) *HTMLPDF {
@@ -43,15 +49,15 @@ func NewHTMLPDF(conf *Config) *HTMLPDF {
 		jobQueue: make(chan bool, conf.Worker),
 		pdfOption: &PDFOption{
 			PrintToPDFParams: page.PrintToPDFParams{
-				PaperWidth:  8.27, //A4
-				PaperHeight: 11.69, //A4
-				MarginTop:   0,
-				MarginRight: 0,
-				MarginBottom: 0,
-				MarginLeft: 0,
-				Scale: 1,
-				Landscape: false,
-				PrintBackground: true,
+				PaperWidth:        8.27,  //A4
+				PaperHeight:       11.69, //A4
+				MarginTop:         0,
+				MarginRight:       0,
+				MarginBottom:      0,
+				MarginLeft:        0,
+				Scale:             1,
+				Landscape:         false,
+				PrintBackground:   true,
 				PreferCSSPageSize: false,
 			},
 			patchMotors: true,
@@ -62,7 +68,7 @@ func NewHTMLPDF(conf *Config) *HTMLPDF {
 func (pdf *HTMLPDF) WithParams(params *page.PrintToPDFParams) *HTMLPDF {
 	pdf.pdfOption = &PDFOption{
 		PrintToPDFParams: *params,
-		patchMotors: pdf.pdfOption.patchMotors,
+		patchMotors:      pdf.pdfOption.patchMotors,
 	}
 	return pdf
 }
@@ -76,9 +82,98 @@ func (pdf *HTMLPDF) WithParamsRun(url string, params *page.PrintToPDFParams) (st
 	return pdf.WithParams(params).run(url)
 }
 
+func (pdf *HTMLPDF) getAllocatorOpts() []chromedp.ExecAllocatorOption {
+
+	dpi := 150.0
+	PaperHeight := pdf.pdfOption.PaperHeight
+	PaperWidth := pdf.pdfOption.PaperWidth
+	if pdf.pdfOption.Landscape {
+		PaperHeight = pdf.pdfOption.PaperWidth
+		PaperWidth = pdf.pdfOption.PaperHeight
+	}
+	// 转换为视口尺寸（以像素为单位）
+	viewportWidth := int(PaperWidth * dpi)
+	viewportHeight := int(PaperHeight * dpi)
+
+	Log.Debugf("PaperHeight: %f, PaperWidth: %f, dpi: %f, viewportWidth: %d, viewportHeight: %d", PaperHeight, PaperWidth, dpi, viewportWidth, viewportHeight)
+
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.ExecPath(pdf.config.ChromePath),
+		chromedp.DisableGPU,
+		chromedp.Flag("font-render-hinting", "none"),             // 禁用字体渲染提示
+		chromedp.Flag("disable-font-subpixel-positioning", true), // 禁用字体子像素
+		chromedp.Flag("disable-web-security", true),              // 禁用证书验证
+		chromedp.Flag("disable-setuid-sandbox", true),            // 禁用沙盒
+		chromedp.Flag("disable-dev-shm-usage", true),             // 禁用 /dev/shm
+		chromedp.WindowSize(viewportWidth, viewportHeight+50),
+	)
+
+	//logLevel, ok := os.LookupEnv("LOG_LEVEL")
+	//if ok && logLevel == "DEBUG" {
+	//	opts = append(opts, chromedp.Flag("headless", false))
+	//}
+
+	return opts
+}
+
+// initAllocator 初始化或重啟 Chrome allocator
+func (pdf *HTMLPDF) initOrRestartAllocator() error {
+	allocatorMu.Lock()
+	defer allocatorMu.Unlock()
+
+	// 如果已經有 allocator，先清理
+	if allocatorCancel != nil {
+		allocatorCancel()
+	}
+
+	// 建立新的 ExecAllocator
+	allocatorCtx, allocatorCancel = chromedp.NewExecAllocator(context.Background(), pdf.getAllocatorOpts()...)
+
+	// 測試是否成功啟動（避免啟動失敗還繼續用）
+	testCtx, testCancel := chromedp.NewContext(allocatorCtx)
+	defer testCancel()
+
+	testTimeoutCtx, testCancelTimeout := context.WithTimeout(testCtx, 10*time.Second)
+	defer testCancelTimeout()
+
+	err := chromedp.Run(testTimeoutCtx, chromedp.Navigate("about:blank"))
+	if err != nil {
+		allocatorCancel()
+		allocatorCtx = nil
+		allocatorCancel = nil
+		Log.Infof("Chrome allocator failed to start: %v", err)
+		return fmt.Errorf("failed to start Chrome: %w", err)
+	}
+
+	Log.Info("Chrome allocator started / restarted successfully")
+	return nil
+}
+
+// getAllocatorCtx 獲取可用的 allocator context，必要時重啟
+func (pdf *HTMLPDF) getAllocatorCtx() (context.Context, context.CancelFunc, error) {
+	allocatorMu.Lock()
+	if allocatorCtx == nil || allocatorCtx.Err() != nil {
+		allocatorMu.Unlock()
+		if err := pdf.initOrRestartAllocator(); err != nil {
+			return nil, nil, err
+		}
+		allocatorMu.Lock()
+	}
+	ctx := allocatorCtx
+	cancel := allocatorCancel // 注意：這是 allocator 的 cancel，不要亂呼叫
+	allocatorMu.Unlock()
+
+	return ctx, cancel, nil
+}
+
+func (pdf *HTMLPDF) PrepareRuntime() error {
+	_, _, err := pdf.getAllocatorCtx()
+	return err
+}
+
 func (pdf *HTMLPDF) run(url string) (string, error) {
 	// 將 PrintToPDFParams 轉換為 CSS @page 樣式
-	if pdf.pdfOption.Scale == 0  {
+	if pdf.pdfOption.Scale == 0 {
 		pdf.pdfOption.Scale = 1
 	}
 	customCSS := ""
@@ -98,43 +193,18 @@ func (pdf *HTMLPDF) run(url string) (string, error) {
 	`, pdf.pdfOption.PaperWidth, pdf.pdfOption.PaperHeight, pdf.pdfOption.MarginTop, pdf.pdfOption.MarginRight, pdf.pdfOption.MarginBottom, pdf.pdfOption.MarginLeft)
 	}
 
-	PreferCSSPageSize := false;
+	PreferCSSPageSize := false
 	if pdf.pdfOption.PreferCSSPageSize || pdf.pdfOption.patchMotors {
 		PreferCSSPageSize = true
 	}
 
-	dpi := 150.0
-	PaperHeight := pdf.pdfOption.PaperHeight
-	PaperWidth := pdf.pdfOption.PaperWidth
-	if pdf.pdfOption.Landscape {
-		PaperHeight = pdf.pdfOption.PaperWidth
-		PaperWidth = pdf.pdfOption.PaperHeight
+	allocCtx, _, err := pdf.getAllocatorCtx()
+	if err != nil {
+		Log.Errorf("Failed to create Chrome allocator: %v", err)
+		return "", err
 	}
-	// 转换为视口尺寸（以像素为单位）
-	viewportWidth := int(PaperWidth * dpi)
-	viewportHeight := int(PaperHeight * dpi)
 
-	Log.Debugf("PaperHeight: %f, PaperWidth: %f, dpi: %f, viewportWidth: %d, viewportHeight: %d", PaperHeight, PaperWidth, dpi, viewportWidth, viewportHeight)
-
-
-	// 自定義 Chrome 路徑
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.ExecPath(pdf.config.ChromePath),
-		chromedp.DisableGPU,
-		chromedp.Flag("disable-web-security",true),
-		chromedp.WindowSize(viewportWidth, viewportHeight + 50),
-	)
-
-	//logLevel, ok := os.LookupEnv("LOG_LEVEL")
-	//if ok && logLevel == "DEBUG" {
-	//	opts = append(opts, chromedp.Flag("headless", false))
-	//}
-
-	defaultCtx, cancel := context.WithTimeout(context.Background(), time.Second * time.Duration(pdf.config.Timeout))
-	defer cancel()
-
-	// 創建上下文
-	ctx, cancel := chromedp.NewExecAllocator(defaultCtx, opts...)
+	ctx, cancel := context.WithTimeout(allocCtx, time.Second*time.Duration(pdf.config.Timeout))
 	defer cancel()
 
 	ctx, cancel = chromedp.NewContext(ctx)
@@ -151,7 +221,7 @@ func (pdf *HTMLPDF) run(url string) (string, error) {
 	})
 
 	var buf []byte
-	err := chromedp.Run(ctx, chromedp.Tasks{
+	err = chromedp.Run(ctx, chromedp.Tasks{
 		chromedp.Navigate(url),
 		chromedp.WaitReady("body"),
 		chromedp.ActionFunc(func(ctx context.Context) error {
@@ -219,6 +289,7 @@ func (pdf *HTMLPDF) run(url string) (string, error) {
 func (pdf *HTMLPDF) BuildFromLink(link string) (local_pdf string, err error) {
 	pdf_name, err := pdf.run(link)
 	if err != nil {
+		Log.Errorf("error with fromlink：%s, error: %s\n", link, err)
 		return "", err
 	}
 	return pdf_name, nil
@@ -238,9 +309,9 @@ func (pdf *HTMLPDF) BuildFromSource(html []byte) (local_pdf string, err error) {
 		return "", err
 	}
 
-
 	pdf_name, err := pdf.run(fmt.Sprintf("file://%s", tmpFile.Name()))
 	if err != nil {
+		Log.Errorf("error with fromSource：%s, error: %s\n", tmpFile.Name(), err)
 		return "", err
 	}
 

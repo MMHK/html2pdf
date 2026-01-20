@@ -16,15 +16,23 @@ import (
 
 type HTTPService struct {
 	config *Config
+	pdf    *HTMLPDF
 }
 
 func NewHTTP(conf *Config) *HTTPService {
 	return &HTTPService{
 		config: conf,
+		pdf:    NewHTMLPDF(conf),
 	}
 }
 
 func (s *HTTPService) Start() {
+	err := s.pdf.PrepareRuntime()
+	if err != nil {
+		Log.Errorf("Failed to prepare runtime: %v", err)
+		return
+	}
+
 	r := mux.NewRouter()
 	r.HandleFunc("/", s.RedirectSwagger)
 	r.HandleFunc("/htmlpdf", s.HTMLPDF)
@@ -72,8 +80,7 @@ func (s *HTTPService) HTMLPDF(writer http.ResponseWriter, request *http.Request)
 		}
 	}
 
-	htmlpdf := NewHTMLPDF(s.config)
-	file, err := htmlpdf.BuildFromSource(bin)
+	file, err := s.pdf.BuildFromSource(bin)
 	if err != nil {
 		Log.Error(err)
 		http.Error(writer, err.Error(), 500)
@@ -83,10 +90,10 @@ func (s *HTTPService) HTMLPDF(writer http.ResponseWriter, request *http.Request)
 	writer.Header().Set("Content-Type", "application/pdf")
 
 	err = SetPDFMetaData(file, &PDFMetaInfo{
-		Author:      s.config.BuildMeta.Author,
-		Creator:     s.config.BuildMeta.Creator,
-		Keywords:    s.config.BuildMeta.Keywords,
-		Subject:     s.config.BuildMeta.Subject,
+		Author:   s.config.BuildMeta.Author,
+		Creator:  s.config.BuildMeta.Creator,
+		Keywords: s.config.BuildMeta.Keywords,
+		Subject:  s.config.BuildMeta.Subject,
 	})
 	if err != nil {
 		Log.Error(err)
@@ -111,8 +118,7 @@ func (s *HTTPService) HTMLPDF(writer http.ResponseWriter, request *http.Request)
 func (s *HTTPService) LINKPDF(writer http.ResponseWriter, request *http.Request) {
 	link := request.FormValue("link")
 
-	htmlpdf := NewHTMLPDF(s.config)
-	file, err := htmlpdf.BuildFromLink(link)
+	file, err := s.pdf.BuildFromLink(link)
 	if err != nil {
 		Log.Error(err)
 		http.Error(writer, err.Error(), 500)
@@ -122,10 +128,10 @@ func (s *HTTPService) LINKPDF(writer http.ResponseWriter, request *http.Request)
 	writer.Header().Set("Content-Type", "application/pdf")
 
 	err = SetPDFMetaData(file, &PDFMetaInfo{
-		Author:      s.config.BuildMeta.Author,
-		Creator:     s.config.BuildMeta.Creator,
-		Keywords:    s.config.BuildMeta.Keywords,
-		Subject:     s.config.BuildMeta.Subject,
+		Author:   s.config.BuildMeta.Author,
+		Creator:  s.config.BuildMeta.Creator,
+		Keywords: s.config.BuildMeta.Keywords,
+		Subject:  s.config.BuildMeta.Subject,
 	})
 	if err != nil {
 		Log.Error(err)
@@ -207,10 +213,9 @@ func (s *HTTPService) LinkCombine(writer http.ResponseWriter, request *http.Requ
 					<-worker
 				}()
 
-				htmlpdf := NewHTMLPDF(s.config)
 				localPath := fmt.Sprintf("file://%s", job.LocalPath)
 				Log.Debug("convert html to pdf", localPath)
-				pdf_path, err := htmlpdf.BuildFromLink(localPath)
+				pdf_path, err := s.pdf.BuildFromLink(localPath)
 				if err != nil {
 					Log.Error(err)
 					return
@@ -260,10 +265,10 @@ func (s *HTTPService) LinkCombine(writer http.ResponseWriter, request *http.Requ
 	}
 
 	err := SetPDFMetaData(combine_path, &PDFMetaInfo{
-		Author:      s.config.BuildMeta.Author,
-		Creator:     s.config.BuildMeta.Creator,
-		Keywords:    s.config.BuildMeta.Keywords,
-		Subject:     s.config.BuildMeta.Subject,
+		Author:   s.config.BuildMeta.Author,
+		Creator:  s.config.BuildMeta.Creator,
+		Keywords: s.config.BuildMeta.Keywords,
+		Subject:  s.config.BuildMeta.Subject,
 	})
 	if err != nil {
 		Log.Error(err)
@@ -285,7 +290,7 @@ func (s *HTTPService) LinkCombine(writer http.ResponseWriter, request *http.Requ
 		http.Error(writer, err.Error(), 500)
 		return
 	}
-	defer time.AfterFunc(time.Second * 10, func() {
+	defer time.AfterFunc(time.Second*10, func() {
 		os.Remove(combine_path)
 	})
 }
@@ -331,10 +336,10 @@ func (s *HTTPService) COMBINE(writer http.ResponseWriter, request *http.Request)
 	}
 
 	err = SetPDFMetaData(combine_path, &PDFMetaInfo{
-		Author:      s.config.BuildMeta.Author,
-		Creator:     s.config.BuildMeta.Creator,
-		Keywords:    s.config.BuildMeta.Keywords,
-		Subject:     s.config.BuildMeta.Subject,
+		Author:   s.config.BuildMeta.Author,
+		Creator:  s.config.BuildMeta.Creator,
+		Keywords: s.config.BuildMeta.Keywords,
+		Subject:  s.config.BuildMeta.Subject,
 	})
 	if err != nil {
 		Log.Error(err)
@@ -355,7 +360,7 @@ func (s *HTTPService) COMBINE(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	defer time.AfterFunc(time.Second * 10, func() {
+	defer time.AfterFunc(time.Second*10, func() {
 		os.Remove(combineFile.Name())
 	})
 

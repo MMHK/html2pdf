@@ -39,10 +39,13 @@ RUN apt-get install -y --no-install-recommends \
         wget \
         ca-certificates \
         cabextract \
+        dumb-init \
+        gettext-base \
         xfonts-utils
 
 # 安裝其他字體包（這些沒問題）
-RUN apt-get install -y --no-install-recommends \
+RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections \
+  && apt-get install -y --no-install-recommends \
         fontconfig \
         fonts-liberation \
         fonts-arphic-uming \
@@ -52,15 +55,11 @@ RUN apt-get install -y --no-install-recommends \
         fonts-wqy-zenhei \
         fonts-noto \
         fonts-noto-cjk \
-        fonts-unfonts-core
+        fonts-unfonts-core \
+        ttf-mscorefonts-installer
 
 RUN set -x  \
 # Install runtime dependencies
- && apt-get update \
- && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        dumb-init \
-        gettext-base \
  && cp -r /app/font-conf/10-* /etc/fonts/conf.d/ \
  && fc-cache -fv \
 # Clean up
